@@ -1,0 +1,10 @@
+{
+  "jcr:primaryType": "cq:Template",
+  "jcr:title": "Coveo Index Agent",
+  "ranking": 1,
+  "allowedPaths": "/etc/replication/agent.*",
+  "jcr:content": {
+    "jcr:primaryType": "cq:PageContent",
+    "sling:resourceType": "/apps/mcplusa_coveo/components/page/coveoIndexAgent"
+  }
+}
