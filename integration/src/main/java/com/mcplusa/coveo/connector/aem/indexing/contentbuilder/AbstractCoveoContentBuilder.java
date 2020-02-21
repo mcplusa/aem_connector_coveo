@@ -105,4 +105,26 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
             list.add(property);
         }
     }
+
+    protected <T> T getLastValue(Map<String, Object> res, String key) {
+        Object value = res.get(key);
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            if (value instanceof List<?>) {
+                List<T> list = (List<T>) value;
+                if (list.size() > 0) {
+                    return list.get(list.size() - 1);
+                }
+
+                return null;
+            } else {
+                return (T) value;
+            }
+        } catch (ClassCastException ex) {
+            return null;
+        }
+    }
 }

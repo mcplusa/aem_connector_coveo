@@ -182,6 +182,8 @@ public class CoveoTransportHandler implements TransportHandler {
     private Document indexEntryToDocument(IndexEntry indexEntry) {
         String documentId = indexEntry.getContent("documentId", String.class);
         Document doc = new Document(documentId);
+        
+        doc.setTitle(indexEntry.getContent("title", String.class));
 
         Map<String, Object> valuesMap = new HashMap<>();
 
@@ -191,20 +193,10 @@ public class CoveoTransportHandler implements TransportHandler {
             }
         });
         doc.setMetadata(valuesMap);
-
-        doc.setTitle(indexEntry.getContent("dc:title", String.class));
-
-        List<Long> modifiedDates = indexEntry.getContent("jcr:lastModified", ArrayList.class);
-        if (modifiedDates != null && modifiedDates.size() > 0) {
-            Long lastModified = modifiedDates.get(modifiedDates.size() - 1);
-            doc.addMetadata("date", lastModified, Long.class);
-        }
-
-        List<Long> createdDates = indexEntry.getContent("jcr:created", ArrayList.class);
-        if (createdDates != null && createdDates.size() > 0) {
-            Long lastCreated = createdDates.get(createdDates.size() - 1);
-            doc.addMetadata("createddate", lastCreated, Long.class);
-        }
+        
+        doc.addMetadata("date", indexEntry.getContent("lastmodified", Long.class), Long.class);
+        doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
+        doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
 
         Optional<String> extension = getExtension(documentId);
         if (extension.isPresent()) {
@@ -215,12 +207,6 @@ public class CoveoTransportHandler implements TransportHandler {
         if (data != null) {
             doc.setCompressionType(CompressionType.UNCOMPRESSED);
             doc.addMetadata("CompressedBinaryData", data, String.class);
-        }
-
-        List<String> authors = indexEntry.getContent("jcr:createdBy", ArrayList.class);
-        if (authors != null && authors.size() > 0) {
-            String author = authors.get(authors.size() - 1);
-            doc.addMetadata("author", author, String.class);
         }
 
         return doc;

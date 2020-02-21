@@ -55,7 +55,10 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                         ret.addContent("content", content);
                     }
                     
-                    ret.addContent("dc:title", asset.getName());
+                    ret.addContent("title", asset.getName());
+                    ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                    ret.addContent("lastmodified", asset.getLastModified());
+                    ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
                     
                     ret.setDocumentId(documentId);
                     return ret;

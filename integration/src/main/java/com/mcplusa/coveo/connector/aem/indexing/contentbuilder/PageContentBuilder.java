@@ -42,6 +42,10 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                     IndexEntry ret = new IndexEntry("idx", "page", path);
                     ret.addContent(getProperties(res, indexRules));
                     ret.setDocumentId(documentId);
+                    ret.addContent("title", page.getTitle());
+                    ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                    ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
+                    ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
                     return ret;
                 }
             }
