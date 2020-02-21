@@ -137,7 +137,6 @@ public class CoveoTransportHandler implements TransportHandler {
      */
     private ReplicationResult doActivate(TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient) throws ReplicationException, JSONException, IOException {
         ReplicationLog log = tx.getLog();
-        log.info(getClass().getSimpleName() + ": Indexing... " + tx.getContent().getContentType());
         ObjectMapper mapper = new ObjectMapper();
         IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
         if (entry != null) {
