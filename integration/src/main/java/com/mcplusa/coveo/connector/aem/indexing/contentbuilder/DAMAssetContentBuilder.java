@@ -2,7 +2,6 @@ package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
 import com.day.cq.commons.Externalizer;
 import com.day.cq.dam.api.Asset;
-import com.google.gson.Gson;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
 import java.io.ByteArrayOutputStream;
