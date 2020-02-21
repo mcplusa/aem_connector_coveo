@@ -137,7 +137,7 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
 
             return factory.create("text/plain", tempFile.toFile(), true);
         } catch (IOException e) {
-            throw new ReplicationException("Could not write to temporary file", e);
+            throw new ReplicationException("Could not write to temporary file " + e.getMessage(), e);
         }
     }
 

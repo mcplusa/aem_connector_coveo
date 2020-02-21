@@ -5,6 +5,7 @@ import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
+import java.util.Base64;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -42,6 +43,10 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                     IndexEntry ret = new IndexEntry("idx", "page", path);
                     ret.addContent(getProperties(res, indexRules));
                     ret.setDocumentId(documentId);
+                    ret.addContent("title", page.getTitle());
+                    ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                    ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
+                    ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
                     return ret;
                 }
             }
