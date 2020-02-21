@@ -2,8 +2,13 @@ package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
 import com.day.cq.commons.Externalizer;
 import com.day.cq.dam.api.Asset;
+import com.google.gson.Gson;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -25,7 +30,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(DAMAssetContentBuilder.class);
     public static final String PRIMARY_TYPE_VALUE = "dam:Asset";
 
-    private static final String[] FIXED_RULES = {"dc:title", "dc:description", "jcr:lastModified"};
+    private static final String[] FIXED_RULES = {"dc:title", "dc:description", "jcr:created", "jcr:createdBy", "jcr:lastModified"};
 
     @Override
     public IndexEntry create(String path, @Nonnull ResourceResolver resolver) {
@@ -42,6 +47,16 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                     }
                     IndexEntry ret = new IndexEntry("idx", "asset", path);
                     ret.addContent(getProperties(res, indexRules));
+                    ret.addContent("everythingkeys", res.getValueMap().keySet());
+                    
+                    InputStream is = asset.getOriginal().getStream();
+                    if (is != null) {
+                        String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
+                        ret.addContent("content", content);
+                    }
+                    
+                    ret.addContent("dc:title", asset.getName());
+                    
                     ret.setDocumentId(documentId);
                     return ret;
                 }
@@ -54,5 +69,32 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     @Override
     protected String[] getFixedRules() {
         return FIXED_RULES;
+    }
+    
+    private byte[] inputStreamToByteArray(InputStream is) {
+        ByteArrayOutputStream buffer = null;
+        try {
+            buffer = new ByteArrayOutputStream();
+            int nRead;
+            byte[] data = new byte[1024];
+            while ((nRead = is.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+
+            buffer.flush();
+            return buffer.toByteArray();
+        } catch (IOException ex) {
+            LOG.error("Error trying to convert input stream to byte[]", ex);
+            return null;
+        } finally {
+            try {
+                is.close();
+                if (buffer != null) {
+                    buffer.close();
+                }
+            } catch (IOException ex) {
+                LOG.error("Error closing inputstream", ex);
+            }
+        }
     }
 }

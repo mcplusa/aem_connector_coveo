@@ -14,8 +14,13 @@ import com.mcplusa.coveo.sdk.CoveoResponse;
 import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
 import com.mcplusa.coveo.sdk.pushapi.model.Document;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
+import com.mcplusa.coveo.sdk.pushapi.model.CompressionType;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -65,9 +70,9 @@ public class CoveoTransportHandler implements TransportHandler {
         ReplicationLog log = tx.getLog();
         try {
             CoveoPushClient pushClient = coveoService.getClient();
-            log.info(getClass().getSimpleName() + ": Using host: " + pushClient.getHost() + " org: " + pushClient.getOrganizationId() + " source: " + pushClient.getSourceId());
+            log.debug(getClass().getSimpleName() + ": Using host: " + pushClient.getHost() + " org: " + pushClient.getOrganizationId() + " source: " + pushClient.getSourceId());
             ReplicationActionType replicationType = tx.getAction().getType();
-            log.info(getClass().getSimpleName() + ": replicationType " + replicationType.toString());
+            log.debug(getClass().getSimpleName() + ": replicationType " + replicationType.toString());
             if (replicationType == ReplicationActionType.TEST) {
                 return doTest(ctx, tx, pushClient);
             } else {
@@ -102,7 +107,7 @@ public class CoveoTransportHandler implements TransportHandler {
         ObjectMapper mapper = new ObjectMapper();
         IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
         if (entry != null) {
-            Document document = indexEntryToDocument(entry, log);
+            Document document = indexEntryToDocument(entry);
             CoveoResponse deleteResponse = pushClient.deleteDocument(document.getDocumentId());
 
             LOG.debug(deleteResponse.toString());
@@ -136,8 +141,8 @@ public class CoveoTransportHandler implements TransportHandler {
         ObjectMapper mapper = new ObjectMapper();
         IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
         if (entry != null) {
-            Document document = indexEntryToDocument(entry, log);
-            log.debug(getClass().getSimpleName() + ": Indexing " + document.getDocumentId());
+            Document document = indexEntryToDocument(entry);
+            log.info(getClass().getSimpleName() + ": Indexing " + document.getDocumentId());
 
             CoveoResponse indexResponse = pushClient.pushSingleDocument(document);
             LOG.debug(indexResponse.toString());
@@ -173,23 +178,68 @@ public class CoveoTransportHandler implements TransportHandler {
             return new ReplicationResult(false, 0, "Replication test failed");
         }
     }
-    
-    private Document indexEntryToDocument(IndexEntry indexEntry, ReplicationLog log) {
+
+    private Document indexEntryToDocument(IndexEntry indexEntry) {
         String documentId = indexEntry.getContent("documentId", String.class);
         Document doc = new Document(documentId);
-        doc.setMetadata(indexEntry.getContent());
-        
-        String keys = "";
-        for (Map.Entry<String, Object> en : indexEntry.getContent().entrySet()) {
-            String key = en.getKey();
-//            Object value = en.getValue();
-            keys += key + ", ";
-            
-//            doc.addMetadata(cleanFieldName(key), value, Object.class);
+
+        Map<String, Object> valuesMap = new HashMap<>();
+
+        indexEntry.getContent().keySet().forEach(key -> {
+            if (!key.equals("content") || key.equals("documentid")) {
+                valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
+            }
+        });
+        doc.setMetadata(valuesMap);
+
+        doc.setTitle(indexEntry.getContent("dc:title", String.class));
+
+        List<Long> modifiedDates = indexEntry.getContent("jcr:lastModified", ArrayList.class);
+        if (modifiedDates != null && modifiedDates.size() > 0) {
+            Long lastModified = modifiedDates.get(modifiedDates.size() - 1);
+            doc.addMetadata("date", lastModified, Long.class);
         }
-        log.info(getClass().getSimpleName() + ": keys: " + keys);
+
+        List<Long> createdDates = indexEntry.getContent("jcr:created", ArrayList.class);
+        if (createdDates != null && createdDates.size() > 0) {
+            Long lastCreated = createdDates.get(createdDates.size() - 1);
+            doc.addMetadata("createddate", lastCreated, Long.class);
+        }
+
+        Optional<String> extension = getExtension(documentId);
+        if (extension.isPresent()) {
+            doc.setFileExtension(extension.get());
+        }
+
+        String data = indexEntry.getContent("content", String.class);
+        if (data != null) {
+            doc.setCompressionType(CompressionType.UNCOMPRESSED);
+            doc.addMetadata("CompressedBinaryData", data, String.class);
+        }
+
+        List<String> authors = indexEntry.getContent("jcr:createdBy", ArrayList.class);
+        if (authors != null && authors.size() > 0) {
+            String author = authors.get(authors.size() - 1);
+            doc.addMetadata("author", author, String.class);
+        }
 
         return doc;
+    }
+
+    /**
+     * Extract the extension from URI
+     *
+     * @param uri
+     * @return Optional<String> that contains the extension, it will be empty if
+     * the URI doesn't contains an extension
+     */
+    private Optional<String> getExtension(String uri) {
+        int extensionIndex = uri.lastIndexOf(".");
+        if (extensionIndex > 0) {
+            return Optional.of(uri.substring(extensionIndex));
+        }
+
+        return Optional.empty();
     }
 
     /**
