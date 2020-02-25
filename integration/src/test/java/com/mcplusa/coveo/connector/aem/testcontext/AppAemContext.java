@@ -1,11 +1,13 @@
 package com.mcplusa.coveo.connector.aem.testcontext;
 
 import com.day.cq.commons.Externalizer;
+import com.day.cq.contentsync.handler.util.RequestResponseFactory;
 import com.day.cq.wcm.api.Page;
 import io.wcm.testing.mock.aem.junit.AemContext;
 import io.wcm.testing.mock.aem.junit.AemContextCallback;
 import java.io.IOException;
 import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.engine.SlingRequestProcessor;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -31,6 +33,8 @@ public final class AppAemContext {
   public static void loadSampleContent(AemContext context) {
     context.load().json("/content.json", AppAemContext.CONTENT_ROOT);
     context.registerService(Externalizer.class);
+    context.registerService(RequestResponseFactory.class);
+    context.registerService(SlingRequestProcessor.class);
     Page currentPage = context.pageManager().getPage(AppAemContext.PAGE);
     assertNotNull(currentPage);
     context.currentPage(currentPage);
