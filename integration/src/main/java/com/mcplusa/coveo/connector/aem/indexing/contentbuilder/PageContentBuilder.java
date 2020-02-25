@@ -3,16 +3,26 @@ package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 import com.day.cq.commons.Externalizer;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
+import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
-import java.util.Base64;
+import java.lang.reflect.Type;
 import javax.annotation.Nonnull;
+import javax.jcr.Session;
+import java.util.List;
+import javax.jcr.Node;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,10 +31,13 @@ import org.slf4j.LoggerFactory;
 @Property(name = CoveoIndexConfiguration.PRIMARY_TYPE, value = PageContentBuilder.PRIMARY_TYPE_VALUE)
 public class PageContentBuilder extends AbstractCoveoContentBuilder {
 
+    @Reference
+    ResourceResolverFactory resolverFactory;
+
     public static final String PRIMARY_TYPE_VALUE = "cq:Page";
 
     private static final Logger LOG = LoggerFactory.getLogger(PageContentBuilder.class);
-    private static final String[] FIXED_RULES = {"cq:lastModified", "cq:template", "jcr:description", "jcr:title"};
+    private static final String[] FIXED_RULES = {"cq:lastModified", "cq:template", "jcr:description", "jcr:title", "rep:policy"};
 
     @Override
     public IndexEntry create(String path, @Nonnull ResourceResolver resolver) {
@@ -47,6 +60,24 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                     ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
                     ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
                     ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+
+                    try {
+                        ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+                        Session adminSession = resourceResolver.adaptTo(Session.class);
+                        UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+
+                        Node node = adminSession.getNode(path);
+
+                        JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                        List<Permission> acls = getACLs(policy, userManager);
+                        Type listType = new TypeToken<List<Permission>>() {
+                        }.getType();
+                        String aclJson = new Gson().toJson(acls, listType);
+                        ret.addContent("acl", aclJson);
+                    } catch (Exception ex) {
+                        LOG.error("error policy", ex);
+                    }
+
                     return ret;
                 }
             }
@@ -55,6 +86,22 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
         }
 
         return null;
+    }
+
+    private void getKeyss(Resource res, IndexEntry ret, String mainkey) {
+        ret.addContent(mainkey, res.getValueMap().keySet().toString());
+        int i = 1;
+        for (Resource c : res.getChildren()) {
+            getKeyss(c, ret, "sub_" + i++ + "_" + mainkey);
+        }
+    }
+
+    private void getValuess(Resource res, IndexEntry ret, String mainkey) {
+        ret.addContent(mainkey, res.getValueMap().values().toString());
+        int i = 1;
+        for (Resource c : res.getChildren()) {
+            getValuess(c, ret, "sub_" + i++ + "_" + mainkey);
+        }
     }
 
     @Override
