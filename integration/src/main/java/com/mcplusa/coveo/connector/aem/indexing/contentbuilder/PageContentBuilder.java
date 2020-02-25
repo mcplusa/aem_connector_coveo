@@ -88,22 +88,6 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
         return null;
     }
 
-    private void getKeyss(Resource res, IndexEntry ret, String mainkey) {
-        ret.addContent(mainkey, res.getValueMap().keySet().toString());
-        int i = 1;
-        for (Resource c : res.getChildren()) {
-            getKeyss(c, ret, "sub_" + i++ + "_" + mainkey);
-        }
-    }
-
-    private void getValuess(Resource res, IndexEntry ret, String mainkey) {
-        ret.addContent(mainkey, res.getValueMap().values().toString());
-        int i = 1;
-        for (Resource c : res.getChildren()) {
-            getValuess(c, ret, "sub_" + i++ + "_" + mainkey);
-        }
-    }
-
     @Override
     protected String[] getFixedRules() {
         return FIXED_RULES;
