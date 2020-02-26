@@ -1,6 +1,7 @@
 package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
 import com.day.cq.commons.Externalizer;
+import com.day.cq.contentsync.handler.util.RequestResponseFactory;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
 import com.google.common.reflect.TypeToken;
@@ -14,6 +15,14 @@ import javax.annotation.Nonnull;
 import javax.jcr.Session;
 import java.util.List;
 import javax.jcr.Node;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Base64;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
@@ -23,6 +32,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.engine.SlingRequestProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +42,13 @@ import org.slf4j.LoggerFactory;
 public class PageContentBuilder extends AbstractCoveoContentBuilder {
 
     @Reference
-    ResourceResolverFactory resolverFactory;
+    private ResourceResolverFactory resolverFactory;
+
+    @Reference
+    private RequestResponseFactory requestResponseFactory;
+
+    @Reference
+    private SlingRequestProcessor requestProcessor;
 
     public static final String PRIMARY_TYPE_VALUE = "cq:Page";
 
@@ -60,20 +76,23 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                     ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
                     ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
                     ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+                    ret.addContent("content", getHtmlContent(resolver, path + ".html"));
 
                     try {
                         ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
                         Session adminSession = resourceResolver.adaptTo(Session.class);
                         UserManager userManager = resourceResolver.adaptTo(UserManager.class);
 
-                        Node node = adminSession.getNode(path);
+                        if (adminSession != null) {
+                            Node node = adminSession.getNode(path);
 
-                        JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
-                        List<Permission> acls = getACLs(policy, userManager);
-                        Type listType = new TypeToken<List<Permission>>() {
-                        }.getType();
-                        String aclJson = new Gson().toJson(acls, listType);
-                        ret.addContent("acl", aclJson);
+                            JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                            List<Permission> acls = getACLs(policy, userManager);
+                            Type listType = new TypeToken<List<Permission>>() {
+                            }.getType();
+                            String aclJson = new Gson().toJson(acls, listType);
+                            ret.addContent("acl", aclJson);
+                        }
                     } catch (Exception ex) {
                         LOG.error("error policy", ex);
                     }
@@ -83,6 +102,26 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
             }
         } else {
             LOG.warn("Could not load indexRules for " + PRIMARY_TYPE_VALUE);
+        }
+
+        return null;
+    }
+
+    private String getHtmlContent(ResourceResolver resourceResolver, String path) {
+        try {
+            HttpServletRequest request = requestResponseFactory.createRequest("GET", path);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            HttpServletResponse response = requestResponseFactory.createResponse(out);
+            requestProcessor.processRequest(request, response, resourceResolver);
+
+            String html = new String(out.toByteArray(), "UTF-8");
+            return Base64.getEncoder().encodeToString(html.getBytes());
+        } catch (UnsupportedEncodingException ex) {
+            LOG.error("Error getting Page content", ex);
+        } catch (ServletException | IOException ex) {
+            LOG.error("Error getting Page content", ex);
         }
 
         return null;
