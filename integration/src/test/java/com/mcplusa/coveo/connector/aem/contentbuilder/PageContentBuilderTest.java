@@ -8,6 +8,7 @@ import io.wcm.testing.mock.aem.junit.AemContext;
 import java.lang.reflect.Field;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,9 +74,12 @@ public class PageContentBuilderTest {
             Field field2 = PageContentBuilder.class.getDeclaredField("requestProcessor");
             field2.setAccessible(true);
             field2.set(instance, Mockito.mock(SlingRequestProcessor.class));
+
+            Field field3 = PageContentBuilder.class.getDeclaredField("resolverFactory");
+            field3.setAccessible(true);
+            field3.set(instance, Mockito.mock(ResourceResolverFactory.class));
         } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
             Logger.getLogger(PageContentBuilderTest.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
 }

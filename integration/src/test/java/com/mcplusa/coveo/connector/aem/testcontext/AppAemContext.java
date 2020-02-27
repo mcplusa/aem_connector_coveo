@@ -6,6 +6,7 @@ import com.day.cq.wcm.api.Page;
 import io.wcm.testing.mock.aem.junit.AemContext;
 import io.wcm.testing.mock.aem.junit.AemContextCallback;
 import java.io.IOException;
+import javax.jcr.Session;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.engine.SlingRequestProcessor;
 
@@ -35,6 +36,7 @@ public final class AppAemContext {
     context.registerService(Externalizer.class);
     context.registerService(RequestResponseFactory.class);
     context.registerService(SlingRequestProcessor.class);
+    context.registerService(Session.class);
     Page currentPage = context.pageManager().getPage(AppAemContext.PAGE);
     assertNotNull(currentPage);
     context.currentPage(currentPage);
