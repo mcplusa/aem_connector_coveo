@@ -97,4 +97,10 @@ Coveo only allows only allow lowercase letters, numbers, and underscores, the or
 
 ## License
 
+[![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
+
+- **[MIT license](http://opensource.org/licenses/mit-license.php)**
+Contact MC+A for a commerial license or support
+- Copyright 2020 © [Michael Cizmar & Associates Ltd.](https://www.mcplusa.com) All Rights Reserved.
+
 
