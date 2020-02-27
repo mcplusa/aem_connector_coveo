@@ -53,6 +53,15 @@ The next step is to [setup a Replication Agent](http://localhost:4502/miscadmin#
 
 Now you are ready and can test the Connection. If everything works as expected, you should now see a successfull response.
 
+### Setup Externalizer
+
+By default, the absolute url of documents will use the [publish domain](https://docs.adobe.com/content/help/en/experience-manager-64/developing/platform/externalizer.html).
+
+### Setup Login Admin Whitelist
+
+The Login Admin Whitelist is used to retrieve ACL of documents and apply the permissions, to configure it visit the [System Configuration](http://localhost:4502/system/console/configMgr) and modify `Apache Sling Login Admin Whitelist`. Check `Bypass the whitelist` and add `coveo-aem-integration` in the `Whitelist regexp` input.
+
+
 ### Index custom fields
 
 By default only basic fields are indexed. You can add additional fields using the Coveo Index Configuration in [System Configuration](http://localhost:4502/system/console/configMgr). Each entry contains a primary type (cq:Page or dam:Asset) and multiple index rules.
