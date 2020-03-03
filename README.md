@@ -4,17 +4,29 @@ This repository provides an integration of Coveo into AEM.
 
 ## Getting Started
 
-### Requirements
+### Preflight
 
-The Coveo AEM Integration has been tested for AEM 6.5. All required dependencies are included in the `complete` package.
+#### Account Requirements:
+
+ 1. Access to Miscadmin (AEM Tools) (`http://<host>:<port>/miscadmin`):
+
+  - The account should have access to install/modify a Replication Agent (`http://<host>:<port>/miscadmin#/etc/replication/agents.author`)
+
+2. Access to AEM Web Console (`http://<host>:<port>/system/console/configMgr`)
+The account should have access to:
+
+  - Enable Apache Sling Login Admin Whitelist
+
+  - Setup Externalizer - Day CQ Link Externalizer (`http://<host>:<port>/system/console/configMgr/com.day.cq.commons.impl.ExternalizerImpl`)
 
 ### Create a Push API Source
 
 [Create a Push Source](https://docs.coveo.com/en/94/cloud-v2-developers/creating-a-push-source) and include the creation of a API Key, values that are needed are the following:
-- Organization ID
-- Source ID
-- Access Token _(API Token)_
-- Environment (production, hipaa, etc.)
+
+ - Organization ID
+ - Source ID
+ - Access Token _(API Token)_
+ - Environment (production, hipaa, etc.)
 
 ### Build
 
@@ -53,7 +65,7 @@ The next step is to [setup a Replication Agent](http://localhost:4502/miscadmin#
 
 Now you are ready and can test the Connection. If everything works as expected, you should now see a successfull response.
 
-### Setup Externalizer
+### Setup Externalizer (Day CQ Link Externalizer)
 
 By default, the absolute url of documents will use the [publish domain](https://docs.adobe.com/content/help/en/experience-manager-64/developing/platform/externalizer.html).
 
