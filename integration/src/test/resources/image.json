@@ -1,0 +1,24 @@
+{
+    "30941863.jpg": {
+        "jcr:content": {
+            "cq:lastModified": "2020-03-10T14:15:25.774-03:0",
+            "cq:lastModifiedBy": "admin",
+            "cq:name": "30941863.jpg",
+            "dam:relativePath": "we-retail/en/products/activities/running/30941863.jpg",
+            "jcr:created": "Thu Dec 22 2016 11:26:10 GMT+0100",
+            "jcr:createdBy": "admin",
+            "jcr:primaryType": "dam:AssetConten",
+            "sling:resourceType": "foo/components/bar",
+            "metadata": {
+                "dc:format": "image/jpeg",
+                "jcr:lastModified": "2020-03-10T14:15:25.774-03:00",
+                "dam:size": 35067,
+                "tiff:ImageLength": 1080,
+                "tiff:ImageWidth": 864
+            }
+        },
+        "jcr:created": "Thu Dec 22 2016 11:26:10 GMT+0100",
+        "jcr:createdBy": "admin",
+        "jcr:primaryType": "dam:Asset"
+    }
+}

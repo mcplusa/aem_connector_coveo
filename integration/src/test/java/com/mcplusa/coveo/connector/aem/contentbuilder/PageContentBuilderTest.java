@@ -29,7 +29,7 @@ public class PageContentBuilderTest {
 
     @Before
     public void setUp() {
-        AppAemContext.loadSampleContent(context);
+        AppAemContext.loadPageSampleContent(context);
     }
 
     @Test

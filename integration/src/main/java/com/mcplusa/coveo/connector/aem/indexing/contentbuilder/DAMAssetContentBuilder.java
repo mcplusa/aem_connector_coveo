@@ -14,6 +14,7 @@ import javax.jcr.Session;
 
 import com.day.cq.commons.Externalizer;
 import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -82,11 +83,15 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                     }
 
                     if (MimeTypes.Text.isText(asset.getMimeType()) != null || MimeTypes.Image.isImage(asset.getMimeType()) != null){
-                        InputStream is = asset.getOriginal().getStream();
-                        if (is != null) {
-                            String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
-                            ret.addContent("content", content);
+                        Rendition original = asset.getOriginal();
+                        if (original != null) {
+                            InputStream is = original.getStream();
+                            if (is != null) {
+                                String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
+                                ret.addContent("content", content);
+                            }
                         }
+
                     } else if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
                         String data = getVideoData(documentId, asset.getMimeType(), ret.getContent("title", String.class), ret.getContent("description", String.class));
 
@@ -106,7 +111,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                     ret.addContent("previewUrl", documentId);
 
                     if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
-                        Double videoDuration = this.<Double>getLastValue(allProperties, "videoDuration");
+                        Long videoDuration = this.<Long>getLastValue(allProperties, "videoDuration");
 
                         if (videoDuration != null)
                             ret.addContent("duration", videoDuration);
