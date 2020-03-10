@@ -1,5 +1,13 @@
 package com.mcplusa.coveo.connector.aem.indexing;
 
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import com.day.cq.replication.AgentConfig;
 import com.day.cq.replication.ReplicationActionType;
 import com.day.cq.replication.ReplicationContent;
@@ -12,21 +20,15 @@ import com.day.cq.replication.TransportHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
 import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
-import com.mcplusa.coveo.sdk.pushapi.model.Document;
-import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.pushapi.model.CompressionType;
+import com.mcplusa.coveo.sdk.pushapi.model.Document;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityModel;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityType;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionsSetsModel;
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -69,7 +71,7 @@ public class CoveoTransportHandler implements TransportHandler {
      * @param ctx TransportContext
      * @param tx ReplicationTransaction
      * @return ReplicationResult
-     * @throws ReplicationException
+     * @throws ReplicationException will add a log and skip the replication for this item
      */
     @Override
     public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx) throws ReplicationException {
@@ -208,6 +210,11 @@ public class CoveoTransportHandler implements TransportHandler {
         Optional<String> extension = getExtension(documentId);
         if (extension.isPresent()) {
             doc.setFileExtension(extension.get());
+        }
+
+        if (indexEntry.getContent("documenttype", String.class) != null) {
+            doc.addMetadata("documenttype", indexEntry.getContent("documenttype", String.class), String.class);
+            doc.addMetadata("filetype", indexEntry.getContent("documenttype", String.class), String.class);
         }
 
         String data = indexEntry.getContent("content", String.class);

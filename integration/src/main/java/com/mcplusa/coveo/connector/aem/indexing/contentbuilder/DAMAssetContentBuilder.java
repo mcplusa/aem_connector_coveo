@@ -1,5 +1,17 @@
 package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Type;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.jcr.Node;
+import javax.jcr.Session;
+
 import com.day.cq.commons.Externalizer;
 import com.day.cq.dam.api.Asset;
 import com.google.common.reflect.TypeToken;
@@ -8,15 +20,7 @@ import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.util.Base64;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.jcr.Node;
-import javax.jcr.Session;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
@@ -43,7 +47,8 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(DAMAssetContentBuilder.class);
     public static final String PRIMARY_TYPE_VALUE = "dam:Asset";
 
-    private static final String[] FIXED_RULES = {"dc:title", "dc:description", "jcr:created", "jcr:createdBy", "jcr:lastModified"};
+    private static final String[] FIXED_RULES = { "dc:title", "dc:description", "jcr:created", "jcr:createdBy",
+            "jcr:lastModified" };
 
     @Override
     public IndexEntry create(String path, @Nonnull ResourceResolver resolver) {
@@ -59,19 +64,64 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                         documentId = externalizer.publishLink(resolver, path);
                     }
                     IndexEntry ret = new IndexEntry("idx", "asset", path);
+                    Map<String, Object> allProperties = getAllProperties(res);
                     ret.addContent(getProperties(res, indexRules));
-                    ret.addContent("everythingkeys", res.getValueMap().keySet());
 
-                    InputStream is = asset.getOriginal().getStream();
-                    if (is != null) {
-                        String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
+                    if (this.<String>getLastValue(allProperties, "dc:title") != null) {
+                        ret.addContent("title", this.<String>getLastValue(allProperties, "dc:title"));
+                    } else if (asset.getName() != null) {
+                        ret.addContent("title", asset.getName());
+                    }
+
+                    if (this.<String>getLastValue(allProperties, "dc:description") != null) {
+                        String description = this.<String>getLastValue(allProperties, "dc:description");
+                        if (description == null) {
+                            description = "";
+                        }
+                        ret.addContent("description", description);
+                    }
+
+                    if (MimeTypes.Text.isText(asset.getMimeType()) != null || MimeTypes.Image.isImage(asset.getMimeType()) != null){
+                        InputStream is = asset.getOriginal().getStream();
+                        if (is != null) {
+                            String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
+                            ret.addContent("content", content);
+                        }
+                    } else if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
+                        String data = getVideoData(documentId, asset.getMimeType(), ret.getContent("title", String.class), ret.getContent("description", String.class));
+
+                        String content = Base64.getEncoder().encodeToString(data.getBytes());
                         ret.addContent("content", content);
                     }
 
-                    ret.addContent("title", asset.getName());
-                    ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                    ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
+
+                    if (this.<String>getLastValue(res.getValueMap(), "jcr:createdBy") != null)
+                        ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+
+                    if (this.<Long>getLastValue(res.getValueMap(), "jcr:created") != null)
+                        ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+
                     ret.addContent("lastmodified", asset.getLastModified());
-                    ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+                    ret.addContent("previewUrl", documentId);
+
+                    if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
+                        Double videoDuration = this.<Double>getLastValue(allProperties, "videoDuration");
+
+                        if (videoDuration != null)
+                            ret.addContent("duration", videoDuration);
+                    }
+
+                    if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
+                        Long width = this.<Long>getLastValue(allProperties, "tiff:ImageWidth");
+                        Long height = this.<Long>getLastValue(allProperties, "tiff:ImageLength");
+
+                        if (width != null)
+                            ret.addContent("width", width);
+
+                        if (height != null)
+                            ret.addContent("height", height);
+                    }
 
                     try {
                         ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
@@ -129,5 +179,27 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                 LOG.error("Error closing inputstream", ex);
             }
         }
+    }
+
+    /**
+     * Generate a html content with a video player
+     * 
+     * @param url         URL of the video
+     * @param mimeType    mimetype of video (i.e. mp4)
+     * @param title       Title or filename
+     * @param description description
+     * @return html with a video player embed
+     */
+    private String getVideoData(String url, String mimeType, String title, String description) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(
+                "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-16\"><base target=\"_blank\" href=\"")
+                .append(url)
+                .append("\"></head><body><div style=\"margin: 20px auto; width: 640px\"><div><video width=\"640\" controls><source src=\"")
+                .append(url).append("\" type=\"").append(mimeType)
+                .append("\">Your browser does not support the video tag.</video></div><div style=\"border: 1px solid #CCC; padding:10px; font-family: Helvetica\"><h3>")
+                .append(title).append("</h3><p style=\"text-align: justify;\">").append(description)
+                .append("</p></div></div></body></html>");
+        return sb.toString();
     }
 }

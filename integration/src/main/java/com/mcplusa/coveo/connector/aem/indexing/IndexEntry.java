@@ -46,9 +46,9 @@ public class IndexEntry {
 
     /**
      *
-     * @param index
-     * @param type
-     * @param path
+     * @param index index value
+     * @param type item type (page or asset)
+     * @param path path of the item
      */
     public IndexEntry(String index, String type, String path) {
         this.index = index;
@@ -92,10 +92,10 @@ public class IndexEntry {
     /**
      * Returns the content for the given key or null if cast fails
      *
-     * @param <T>
-     * @param key
-     * @param type
-     * @return
+     * @param <T> return class type
+     * @param key key of the value
+     * @param type return class type
+     * @return value of the map 
      */
     public <T> T getContent(final String key, final Class<T> type) {
         try {

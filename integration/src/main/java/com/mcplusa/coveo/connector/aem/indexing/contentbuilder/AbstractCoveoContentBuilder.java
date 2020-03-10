@@ -10,6 +10,7 @@ import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -89,11 +90,31 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     protected Map<String, Object> getProperties(Resource res, String[] properties) {
         ValueMap vm = res.getValueMap();
         Map<String, Object> ret = Arrays.stream(properties)
-                .filter(property -> vm.containsKey(property))
+                .filter(property -> vm.containsKey(property) && vm.get(property) != null)
                 .collect(Collectors.toMap(Function.identity(), property -> vm.get(property)));
 
         for (Resource child : res.getChildren()) {
             Map<String, Object> props = getProperties(child, properties);
+            // merge properties
+            props.entrySet().forEach(entry -> {
+                String key = entry.getKey();
+                if (!ret.containsKey(key)) {
+                    ret.put(key, entry.getValue());
+                } else {
+                    ret.put(key, mergeProperties(ret.get(entry.getKey()), entry.getValue()));
+                }
+            });
+        }
+        return ret;
+    }
+
+    protected Map<String, Object> getAllProperties(Resource res) {
+        ValueMap vm = res.getValueMap();
+        Map<String, Object> ret = new HashMap<>();
+        ret.putAll(vm);
+
+        for (Resource child : res.getChildren()) {
+            Map<String, Object> props = getAllProperties(child);
             // merge properties
             props.entrySet().forEach(entry -> {
                 String key = entry.getKey();
