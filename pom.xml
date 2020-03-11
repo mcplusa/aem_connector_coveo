@@ -13,6 +13,7 @@
   <artifactId>com.mcplusa.coveo</artifactId>
   <version>2020.03</version>
   <packaging>pom</packaging>
+
   <name>Coveo AEM Integration - Root</name>
   <description>Integration of Coveo into AEM.</description>
 
