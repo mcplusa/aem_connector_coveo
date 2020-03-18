@@ -65,4 +65,18 @@ public class DAMAssetContentBuilderTest {
         assertEquals(864l, entry.getContent("width", String.class));
         assertEquals(1080l, entry.getContent("height", String.class));
     }
+
+    @Test
+    public void testCreatePdf() {
+        AppAemContext.loadPdfSampleContent(context);
+        DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+
+        IndexEntry entry = builder.create(AppAemContext.PDF, context.resourceResolver());
+        assertNotNull(entry);
+        assertEquals(AppAemContext.PDF, entry.getPath());
+        assertEquals("asset", entry.getType());
+
+        assertEquals("the_docker_book.pdf", entry.getContent("title", String.class));
+        assertEquals("admin", entry.getContent("author", String.class));
+    }
 }
