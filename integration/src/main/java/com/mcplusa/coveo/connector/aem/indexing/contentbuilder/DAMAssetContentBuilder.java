@@ -76,13 +76,15 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
 
                     if (this.<String>getLastValue(allProperties, "dc:description") != null) {
                         String description = this.<String>getLastValue(allProperties, "dc:description");
-                        if (description == null) {
+                        if (description == null || description.equals("null")) {
                             description = "";
                         }
                         ret.addContent("description", description);
                     }
 
-                    if (MimeTypes.Text.isText(asset.getMimeType()) != null || MimeTypes.Image.isImage(asset.getMimeType()) != null){
+                    if (MimeTypes.Text.isText(asset.getMimeType()) != null
+                            || MimeTypes.Image.isImage(asset.getMimeType()) != null
+                            || MimeTypes.getType(asset.getMimeType()).isEmpty()) {
                         Rendition original = asset.getOriginal();
                         if (original != null) {
                             InputStream is = original.getStream();
@@ -203,8 +205,8 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                 .append("\"></head><body><div style=\"margin: 20px auto; width: 640px\"><div><video width=\"640\" controls><source src=\"")
                 .append(url).append("\" type=\"").append(mimeType)
                 .append("\">Your browser does not support the video tag.</video></div><div style=\"border: 1px solid #CCC; padding:10px; font-family: Helvetica\"><h3>")
-                .append(title).append("</h3><p style=\"text-align: justify;\">").append(description)
-                .append("</p></div></div></body></html>");
+                .append(title).append("</h3><p style=\"text-align: justify;\">")
+                .append(description != null ? description : "").append("</p></div></div></body></html>");
         return sb.toString();
     }
 }
