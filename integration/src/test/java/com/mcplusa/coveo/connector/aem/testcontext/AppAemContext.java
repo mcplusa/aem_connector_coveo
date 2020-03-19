@@ -20,6 +20,7 @@ public final class AppAemContext {
   public static final String PAGE = CONTENT_ROOT + "/foobar";
   public static final String VIDEO = CONTENT_ROOT + "/video.mp4";
   public static final String IMAGE = CONTENT_ROOT + "/30941863.jpg";
+  public static final String PDF = CONTENT_ROOT + "/the_docker_book.pdf";
 
 
   private AppAemContext() {
@@ -64,6 +65,17 @@ public final class AppAemContext {
     context.registerService(Session.class);
 
     Resource resource = context.resourceResolver().getResource(AppAemContext.IMAGE);
+    assertNotNull(resource);
+    context.currentResource(resource);
+  }
+
+  public static void loadPdfSampleContent(AemContext context) {
+    context.load().json("/pdf.json", AppAemContext.CONTENT_ROOT);
+    context.registerService(Externalizer.class);
+    context.registerService(Asset.class);
+    context.registerService(Session.class);
+
+    Resource resource = context.resourceResolver().getResource(AppAemContext.PDF);
     assertNotNull(resource);
     context.currentResource(resource);
   }
