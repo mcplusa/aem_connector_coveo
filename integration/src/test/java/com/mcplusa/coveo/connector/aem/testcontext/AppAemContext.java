@@ -22,7 +22,6 @@ public final class AppAemContext {
   public static final String IMAGE = CONTENT_ROOT + "/30941863.jpg";
   public static final String PDF = CONTENT_ROOT + "/the_docker_book.pdf";
 
-
   private AppAemContext() {
     // static methods only
   }
@@ -34,7 +33,6 @@ public final class AppAemContext {
   public static AemContext newAemContext(AemContextCallback callback) {
     return new AemContext(new SetUpCallback(callback));
   }
-
 
   public static void loadPageSampleContent(AemContext context) {
     context.load().json("/content.json", AppAemContext.CONTENT_ROOT);
@@ -96,7 +94,11 @@ public final class AppAemContext {
 
       // call test-specific callback first
       if (testCallback != null) {
-        testCallback.execute(context);
+        try {
+          testCallback.execute(context);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
       }
 
     }
