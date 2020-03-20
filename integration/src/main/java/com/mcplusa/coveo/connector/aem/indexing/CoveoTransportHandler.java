@@ -29,7 +29,6 @@ import com.mcplusa.coveo.sdk.pushapi.model.Document;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityModel;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityType;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionsSetsModel;
-import com.mcplusa.coveo.sdk.pushapi.model.PushAPIStatus;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -78,7 +77,6 @@ public class CoveoTransportHandler implements TransportHandler {
     @Override
     public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx) throws ReplicationException {
         ReplicationLog log = tx.getLog();
-        updateSourceStatus(PushAPIStatus.REFRESH, log);
         try {
             CoveoPushClient pushClient = coveoService.getClient();
             log.debug(getClass().getSimpleName() + ": Using host: " + pushClient.getHost() + " org: " + pushClient.getOrganizationId() + " source: " + pushClient.getSourceId());
@@ -99,17 +97,14 @@ public class CoveoTransportHandler implements TransportHandler {
                     case DEACTIVATE:
                         return doDeactivate(ctx, tx, pushClient);
                     default:
-                        updateSourceStatus(PushAPIStatus.IDLE, log);
                         log.warn(getClass().getSimpleName() + ": Replication action type" + replicationType + " not supported.");
                         throw new ReplicationException("Replication action type " + replicationType + " not supported.");
                 }
             }
         } catch (JSONException jex) {
-            updateSourceStatus(PushAPIStatus.IDLE, log);
             LOG.error("JSON was invalid", jex);
             return new ReplicationResult(false, 0, jex.getLocalizedMessage());
         } catch (IOException ioe) {
-            updateSourceStatus(PushAPIStatus.IDLE, log);
             log.error(getClass().getSimpleName() + ": Could not perform Indexing due to " + ioe.getLocalizedMessage());
             LOG.error("Could not perform Indexing", ioe);
             return new ReplicationResult(false, 0, ioe.getLocalizedMessage());
@@ -127,7 +122,6 @@ public class CoveoTransportHandler implements TransportHandler {
 
             LOG.debug(deleteResponse.toString());
             log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode() + ": " + deleteResponse.getStatusLine().getReasonPhrase());
-            updateSourceStatus(PushAPIStatus.IDLE, log);
             if (deleteResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
                 return ReplicationResult.OK;
             } else {
@@ -136,7 +130,6 @@ public class CoveoTransportHandler implements TransportHandler {
             }
         }
 
-        updateSourceStatus(PushAPIStatus.IDLE, log);
         LOG.error("Could not delete");
         return new ReplicationResult(false, 0, "Replication failed");
     }
@@ -164,13 +157,11 @@ public class CoveoTransportHandler implements TransportHandler {
             CoveoResponse indexResponse = pushClient.pushSingleDocument(document);
             LOG.debug(indexResponse.toString());
             log.info(getClass().getSimpleName() + ": " + indexResponse.getStatusLine().getStatusCode() + ": " + indexResponse.getStatusLine().getReasonPhrase());
-            updateSourceStatus(PushAPIStatus.IDLE, log);
             if (indexResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
                 return ReplicationResult.OK;
             }
         }
 
-        updateSourceStatus(PushAPIStatus.IDLE, log);
         LOG.error("Could not replicate");
         return new ReplicationResult(false, 0, "Replication failed");
     }
@@ -300,30 +291,6 @@ public class CoveoTransportHandler implements TransportHandler {
                 .replaceAll(regexWhitespaces, "_")
                 .replaceAll(regexSpecialCharacters, "")
                 .toLowerCase();
-    }
-
-    /**
-     * Perform the source status update. it adds logs for both successful and error
-     * responses.
-     *
-     * @param status PushAPIStatus
-     * @param log    ReplicationLog
-     */
-    private void updateSourceStatus(PushAPIStatus status, ReplicationLog log) {
-        CoveoPushClient pushClient = coveoService.getClient();
-        try {
-            CoveoResponse updateResponse = pushClient.updateSourceStatus(status);
-            if (updateResponse.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
-                log.debug(getClass().getSimpleName() + ": Source Status updated to " + status.toString());
-            } else {
-                log.error(getClass().getSimpleName() + ": Could not update the Source status to " + status.toString());
-                LOG.error("Could not update the Source status to " + status.toString());
-            }
-        } catch (IOException e) {
-            log.error(getClass().getSimpleName() + ": Exception: Could not update the Source status to "
-                    + status.toString());
-            LOG.error("Exception: Could not update the Source status to " + status.toString(), e);
-        }
     }
 
     private String printDocument(Document doc) {
