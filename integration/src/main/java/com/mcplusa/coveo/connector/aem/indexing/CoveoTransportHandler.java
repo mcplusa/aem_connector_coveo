@@ -20,6 +20,7 @@ import com.day.cq.replication.TransportHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
@@ -296,9 +297,9 @@ public class CoveoTransportHandler implements TransportHandler {
     private String printDocument(Document doc) {
         Gson gson = new Gson();
         JsonObject document = gson.fromJson(doc.toJson(), JsonObject.class);
-        String data = document.get("CompressedBinaryData").getAsString();
-        if (data.length() > 1000) {
-            document.addProperty("CompressedBinaryData", data.substring(1000));
+        JsonElement data = document.get("CompressedBinaryData");
+        if (data != null && data.getAsString().length() > 1000) {
+            document.addProperty("CompressedBinaryData", data.getAsString().substring(0, 1000));
         }
 
         return document.toString();
