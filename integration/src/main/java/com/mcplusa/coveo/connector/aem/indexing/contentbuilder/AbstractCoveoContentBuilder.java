@@ -172,7 +172,11 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                     }
                 });
             } else if (el != null && matchProperty(key, properties)) {
-                props.put(key, el.toString());
+                if (el.isJsonArray()) {
+                    props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
+                } else {
+                    props.put(key, el.toString());
+                }
             }
         });
 
