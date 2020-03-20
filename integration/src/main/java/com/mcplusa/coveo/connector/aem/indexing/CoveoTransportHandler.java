@@ -20,6 +20,7 @@ import com.day.cq.replication.TransportHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
 import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
@@ -28,6 +29,7 @@ import com.mcplusa.coveo.sdk.pushapi.model.Document;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityModel;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityType;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionsSetsModel;
+import com.mcplusa.coveo.sdk.pushapi.model.PushAPIStatus;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -76,6 +78,7 @@ public class CoveoTransportHandler implements TransportHandler {
     @Override
     public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx) throws ReplicationException {
         ReplicationLog log = tx.getLog();
+        updateSourceStatus(PushAPIStatus.REFRESH, log);
         try {
             CoveoPushClient pushClient = coveoService.getClient();
             log.debug(getClass().getSimpleName() + ": Using host: " + pushClient.getHost() + " org: " + pushClient.getOrganizationId() + " source: " + pushClient.getSourceId());
@@ -96,14 +99,17 @@ public class CoveoTransportHandler implements TransportHandler {
                     case DEACTIVATE:
                         return doDeactivate(ctx, tx, pushClient);
                     default:
+                        updateSourceStatus(PushAPIStatus.IDLE, log);
                         log.warn(getClass().getSimpleName() + ": Replication action type" + replicationType + " not supported.");
                         throw new ReplicationException("Replication action type " + replicationType + " not supported.");
                 }
             }
         } catch (JSONException jex) {
+            updateSourceStatus(PushAPIStatus.IDLE, log);
             LOG.error("JSON was invalid", jex);
             return new ReplicationResult(false, 0, jex.getLocalizedMessage());
         } catch (IOException ioe) {
+            updateSourceStatus(PushAPIStatus.IDLE, log);
             log.error(getClass().getSimpleName() + ": Could not perform Indexing due to " + ioe.getLocalizedMessage());
             LOG.error("Could not perform Indexing", ioe);
             return new ReplicationResult(false, 0, ioe.getLocalizedMessage());
@@ -121,6 +127,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
             LOG.debug(deleteResponse.toString());
             log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode() + ": " + deleteResponse.getStatusLine().getReasonPhrase());
+            updateSourceStatus(PushAPIStatus.IDLE, log);
             if (deleteResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
                 return ReplicationResult.OK;
             } else {
@@ -129,6 +136,7 @@ public class CoveoTransportHandler implements TransportHandler {
             }
         }
 
+        updateSourceStatus(PushAPIStatus.IDLE, log);
         LOG.error("Could not delete");
         return new ReplicationResult(false, 0, "Replication failed");
     }
@@ -150,16 +158,19 @@ public class CoveoTransportHandler implements TransportHandler {
         IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
         if (entry != null) {
             Document document = indexEntryToDocument(entry);
-            log.debug(document.toString());
+            log.debug("Document: " + printDocument(document));
             log.info(getClass().getSimpleName() + ": Indexing " + document.getDocumentId());
 
             CoveoResponse indexResponse = pushClient.pushSingleDocument(document);
             LOG.debug(indexResponse.toString());
             log.info(getClass().getSimpleName() + ": " + indexResponse.getStatusLine().getStatusCode() + ": " + indexResponse.getStatusLine().getReasonPhrase());
+            updateSourceStatus(PushAPIStatus.IDLE, log);
             if (indexResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
                 return ReplicationResult.OK;
             }
         }
+
+        updateSourceStatus(PushAPIStatus.IDLE, log);
         LOG.error("Could not replicate");
         return new ReplicationResult(false, 0, "Replication failed");
     }
@@ -192,20 +203,29 @@ public class CoveoTransportHandler implements TransportHandler {
         String documentId = indexEntry.getContent("documentId", String.class);
         Document doc = new Document(documentId);
 
-        doc.setTitle(indexEntry.getContent("title", String.class));
+        if (indexEntry.getContent("title", String.class) != null)
+            doc.setTitle(indexEntry.getContent("title", String.class));
 
         Map<String, Object> valuesMap = new HashMap<>();
 
-        indexEntry.getContent().keySet().forEach(key -> {
-            if (!key.equals("content") && !key.equals("documentid") && !key.equals("title") && !key.equals("acl")) {
-                valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
-            }
-        });
+        indexEntry.getContent().keySet().stream()
+                .filter(key -> indexEntry.getContent().get(key) != null)
+                .forEach(key -> {
+                    if (!key.equals("content") && !key.equals("documentid") && !key.equals("title")
+                            && !key.equals("acl")) {
+                        valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
+                    }
+                });
         doc.setMetadata(valuesMap);
 
-        doc.addMetadata("date", indexEntry.getContent("lastmodified", Long.class), Long.class);
-        doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
-        doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
+        if (indexEntry.getContent("lastmodified", Long.class) != null)
+            doc.addMetadata("date", indexEntry.getContent("lastmodified", Long.class), Long.class);
+        
+        if (indexEntry.getContent("created", Long.class) != null)
+            doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
+
+        if (indexEntry.getContent("author", String.class) != null)
+            doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
 
         Optional<String> extension = getExtension(documentId);
         if (extension.isPresent()) {
@@ -226,24 +246,26 @@ public class CoveoTransportHandler implements TransportHandler {
         // Implement permission
         PermissionsSetsModel psm = new PermissionsSetsModel();
         String aclJson = indexEntry.getContent("acl", String.class);
-        Type listType = new TypeToken<List<Permission>>() {
-        }.getType();
-        List<Permission> acl = new Gson().fromJson(aclJson, listType);
-        if (acl != null) {
-            for (Permission p : acl) {
-                IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
-
-                if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
-                    psm.addAllowedPermission(new IdentityModel(identityType, p.getPrincipalName()));
-                } else {
-                    psm.addDeniedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+        if (aclJson != null) {
+            Type listType = new TypeToken<List<Permission>>() {
+            }.getType();
+            List<Permission> acl = new Gson().fromJson(aclJson, listType);
+            if (acl != null) {
+                for (Permission p : acl) {
+                    IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
+    
+                    if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
+                        psm.addAllowedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+                    } else {
+                        psm.addDeniedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+                    }
                 }
             }
+
+            psm.setAllowAnonymous(acl == null || acl.isEmpty());
+
+            doc.setPermissions(Arrays.asList(psm));
         }
-
-        psm.setAllowAnonymous(acl == null || acl.isEmpty());
-
-        doc.setPermissions(Arrays.asList(psm));
 
         return doc;
     }
@@ -278,5 +300,40 @@ public class CoveoTransportHandler implements TransportHandler {
                 .replaceAll(regexWhitespaces, "_")
                 .replaceAll(regexSpecialCharacters, "")
                 .toLowerCase();
+    }
+
+    /**
+     * Perform the source status update. it adds logs for both successful and error
+     * responses.
+     *
+     * @param status PushAPIStatus
+     * @param log    ReplicationLog
+     */
+    private void updateSourceStatus(PushAPIStatus status, ReplicationLog log) {
+        CoveoPushClient pushClient = coveoService.getClient();
+        try {
+            CoveoResponse updateResponse = pushClient.updateSourceStatus(status);
+            if (updateResponse.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
+                log.debug(getClass().getSimpleName() + ": Source Status updated to " + status.toString());
+            } else {
+                log.error(getClass().getSimpleName() + ": Could not update the Source status to " + status.toString());
+                LOG.error("Could not update the Source status to " + status.toString());
+            }
+        } catch (IOException e) {
+            log.error(getClass().getSimpleName() + ": Exception: Could not update the Source status to "
+                    + status.toString());
+            LOG.error("Exception: Could not update the Source status to " + status.toString(), e);
+        }
+    }
+
+    private String printDocument(Document doc) {
+        Gson gson = new Gson();
+        JsonObject document = gson.fromJson(doc.toJson(), JsonObject.class);
+        String data = document.get("CompressedBinaryData").getAsString();
+        if (data.length() > 1000) {
+            document.addProperty("CompressedBinaryData", data.substring(1000));
+        }
+
+        return document.toString();
     }
 }
