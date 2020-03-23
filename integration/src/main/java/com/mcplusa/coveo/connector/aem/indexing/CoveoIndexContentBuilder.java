@@ -112,7 +112,6 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
             ServiceReference[] serviceReferences = context.getServiceReferences(CoveoContentBuilder.class.getName(),
                     "(" + CoveoIndexConfiguration.PRIMARY_TYPE + "=" + primaryType + ")");
             if (serviceReferences != null && serviceReferences.length > 0) {
-                log.debug(getClass().getSimpleName() + ": Using " + serviceReferences[0].getClass().getName());
                 return (CoveoContentBuilder) context.getService(serviceReferences[0]);
             }
         } catch (InvalidSyntaxException | NullPointerException ex) {
