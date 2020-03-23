@@ -20,6 +20,8 @@ import com.day.cq.replication.TransportHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
 import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
@@ -150,7 +152,7 @@ public class CoveoTransportHandler implements TransportHandler {
         IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
         if (entry != null) {
             Document document = indexEntryToDocument(entry);
-            log.debug(document.toString());
+            log.debug("Document: " + printDocument(document));
             log.info(getClass().getSimpleName() + ": Indexing " + document.getDocumentId());
 
             CoveoResponse indexResponse = pushClient.pushSingleDocument(document);
@@ -160,6 +162,7 @@ public class CoveoTransportHandler implements TransportHandler {
                 return ReplicationResult.OK;
             }
         }
+
         LOG.error("Could not replicate");
         return new ReplicationResult(false, 0, "Replication failed");
     }
@@ -192,20 +195,29 @@ public class CoveoTransportHandler implements TransportHandler {
         String documentId = indexEntry.getContent("documentId", String.class);
         Document doc = new Document(documentId);
 
-        doc.setTitle(indexEntry.getContent("title", String.class));
+        if (indexEntry.getContent("title", String.class) != null)
+            doc.setTitle(indexEntry.getContent("title", String.class));
 
         Map<String, Object> valuesMap = new HashMap<>();
 
-        indexEntry.getContent().keySet().forEach(key -> {
-            if (!key.equals("content") && !key.equals("documentid") && !key.equals("title") && !key.equals("acl")) {
-                valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
-            }
-        });
+        indexEntry.getContent().keySet().stream()
+                .filter(key -> indexEntry.getContent().get(key) != null)
+                .forEach(key -> {
+                    if (!key.equals("content") && !key.equals("documentid") && !key.equals("title")
+                            && !key.equals("acl")) {
+                        valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
+                    }
+                });
         doc.setMetadata(valuesMap);
 
-        doc.addMetadata("date", indexEntry.getContent("lastmodified", Long.class), Long.class);
-        doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
-        doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
+        if (indexEntry.getContent("lastmodified", Long.class) != null)
+            doc.addMetadata("date", indexEntry.getContent("lastmodified", Long.class), Long.class);
+        
+        if (indexEntry.getContent("created", Long.class) != null)
+            doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
+
+        if (indexEntry.getContent("author", String.class) != null)
+            doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
 
         Optional<String> extension = getExtension(documentId);
         if (extension.isPresent()) {
@@ -226,24 +238,26 @@ public class CoveoTransportHandler implements TransportHandler {
         // Implement permission
         PermissionsSetsModel psm = new PermissionsSetsModel();
         String aclJson = indexEntry.getContent("acl", String.class);
-        Type listType = new TypeToken<List<Permission>>() {
-        }.getType();
-        List<Permission> acl = new Gson().fromJson(aclJson, listType);
-        if (acl != null) {
-            for (Permission p : acl) {
-                IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
-
-                if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
-                    psm.addAllowedPermission(new IdentityModel(identityType, p.getPrincipalName()));
-                } else {
-                    psm.addDeniedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+        if (aclJson != null) {
+            Type listType = new TypeToken<List<Permission>>() {
+            }.getType();
+            List<Permission> acl = new Gson().fromJson(aclJson, listType);
+            if (acl != null) {
+                for (Permission p : acl) {
+                    IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
+    
+                    if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
+                        psm.addAllowedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+                    } else {
+                        psm.addDeniedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+                    }
                 }
             }
+
+            psm.setAllowAnonymous(acl == null || acl.isEmpty());
+
+            doc.setPermissions(Arrays.asList(psm));
         }
-
-        psm.setAllowAnonymous(acl == null || acl.isEmpty());
-
-        doc.setPermissions(Arrays.asList(psm));
 
         return doc;
     }
@@ -278,5 +292,16 @@ public class CoveoTransportHandler implements TransportHandler {
                 .replaceAll(regexWhitespaces, "_")
                 .replaceAll(regexSpecialCharacters, "")
                 .toLowerCase();
+    }
+
+    private String printDocument(Document doc) {
+        Gson gson = new Gson();
+        JsonObject document = gson.fromJson(doc.toJson(), JsonObject.class);
+        JsonElement data = document.get("CompressedBinaryData");
+        if (data != null && data.getAsString().length() > 1000) {
+            document.addProperty("CompressedBinaryData", data.getAsString().substring(0, 1000));
+        }
+
+        return document.toString();
     }
 }

@@ -156,6 +156,43 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return null;
     }
 
+    protected Map<String, Object> getJsonProperties(JsonObject json, String[] properties) {
+        Map<String, Object> props = new HashMap<>();
+        json.keySet().forEach(key -> {
+            JsonElement el = json.get(key);
+            if (el != null && el.isJsonObject()) {
+                Map<String, Object> childProps = this.getJsonProperties(el.getAsJsonObject(), properties);
+                // merge properties
+                childProps.entrySet().forEach(entry -> {
+                    String ckey = entry.getKey();
+                    if (!props.containsKey(ckey)) {
+                        props.put(ckey, entry.getValue());
+                    } else {
+                        props.put(ckey, mergeProperties(props.get(entry.getKey()), entry.getValue()));
+                    }
+                });
+            } else if (el != null && matchProperty(key, properties)) {
+                if (el.isJsonArray()) {
+                    props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
+                } else {
+                    props.put(key, el.toString());
+                }
+            }
+        });
+
+        return props;
+    }
+
+    private boolean matchProperty(String key, String[] properties) {
+        for (int i = 0; i < properties.length; i++) {
+            if (properties[i].equals(key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Returns the content policy bound to the given component.
      *

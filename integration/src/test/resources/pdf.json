@@ -27,6 +27,7 @@
         },
         "jcr:created": "Thu Dec 22 2016 11:26:10 GMT+0100",
         "jcr:createdBy": "admin",
-        "jcr:primaryType": "dam:Asset"
+        "jcr:primaryType": "dam:Asset",
+        "nullprop": null
     }
 }
