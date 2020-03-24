@@ -2,7 +2,6 @@ package com.mcplusa.coveo.connector.aem.contentbuilder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Base64;
 
@@ -10,7 +9,6 @@ import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.contentbuilder.DAMAssetContentBuilder;
 import com.mcplusa.coveo.connector.aem.testcontext.AppAemContext;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,5 +76,8 @@ public class DAMAssetContentBuilderTest {
 
         assertEquals("the_docker_book.pdf", entry.getContent("title", String.class));
         assertEquals("admin", entry.getContent("author", String.class));
+
+        assertEquals(false, entry.getContent().containsKey("notexist"));
+        assertEquals(false, entry.getContent().containsKey("nullprop"));
     }
 }

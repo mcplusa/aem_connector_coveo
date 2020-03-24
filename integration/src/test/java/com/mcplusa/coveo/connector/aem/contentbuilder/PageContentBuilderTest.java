@@ -63,6 +63,8 @@ public class PageContentBuilderTest {
         assertEquals(String.class, cascade[1].getClass());
         assertEquals(String.class, cascade[2].getClass());
 
+        assertEquals(false, entry.getContent().containsKey("notexist"));
+        assertEquals(false, entry.getContent().containsKey("nullprop"));
     }
 
     private void mockReferences(PageContentBuilder instance) {
