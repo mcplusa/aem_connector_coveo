@@ -68,6 +68,19 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                     Map<String, Object> allProperties = getAllProperties(res);
                     ret.addContent(getProperties(res, indexRules));
 
+                    // Extract additional properties from the Node
+                    try {
+                        Session adminSession = resolver.adaptTo(Session.class);
+                        Node node = adminSession.getNode(path);
+                        JsonObject content = toJson(node).getAsJsonObject("jcr:content");
+                        if (content != null) {
+                            Map<String, Object> allprops = getJsonProperties(content, indexRules);
+                            ret.addContent(allprops);
+                        }
+                    } catch (Exception ex) {
+                        LOG.error("Could not extract additionals properties from the node", ex);
+                    }
+
                     if (this.<String>getLastValue(allProperties, "dc:title") != null) {
                         ret.addContent("title", this.<String>getLastValue(allProperties, "dc:title"));
                     } else if (asset.getName() != null) {
@@ -130,6 +143,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                             ret.addContent("height", height);
                     }
 
+                    // Retrieve ACLs from policy
                     try {
                         ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
                         Session adminSession = resourceResolver.adaptTo(Session.class);
@@ -138,11 +152,13 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                         Node node = adminSession.getNode(path);
 
                         JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
-                        List<Permission> acls = getACLs(policy, userManager);
-                        Type listType = new TypeToken<List<Permission>>() {
-                        }.getType();
-                        String aclJson = new Gson().toJson(acls, listType);
-                        ret.addContent("acl", aclJson);
+                        if (policy != null) {
+                            List<Permission> acls = getACLs(policy, userManager);
+                            Type listType = new TypeToken<List<Permission>>() {
+                            }.getType();
+                            String aclJson = new Gson().toJson(acls, listType);
+                            ret.addContent("acl", aclJson);
+                        }
                     } catch (Exception ex) {
                         LOG.error("error policy", ex);
                     }
