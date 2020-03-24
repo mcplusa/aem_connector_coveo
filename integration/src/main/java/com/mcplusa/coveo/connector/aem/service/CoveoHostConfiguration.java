@@ -11,7 +11,7 @@ import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * Configuration for a single Coveo Source host
+ * Configuration for a single Coveo Source host.
  */
 @Component(metatype = true, immediate = true,
         label = CoveoHostConfiguration.SERVICE_NAME, description = CoveoHostConfiguration.SERVICE_DESCRIPTION)
@@ -45,6 +45,9 @@ public class CoveoHostConfiguration {
     })
     public static final String PROPERTY_ENV = "environment";
 
+    @Property(name = "agentId", label = "Agent ID", value = "coveo-index-agent", description = "Agent ID of the created Coveo Index Agent")
+    public static final String PROPERTY_AGENT_ID = "agentId";
+
     @Getter
     protected String organizationId;
 
@@ -57,6 +60,9 @@ public class CoveoHostConfiguration {
     @Getter
     protected String environment;
 
+    @Getter
+    protected String agentId;
+
     protected ComponentContext context;
 
     @Activate
@@ -66,6 +72,7 @@ public class CoveoHostConfiguration {
         this.sourceId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_SOURCE_ID), null);
         this.accessToken = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ACCESS_TOKEN), null);
         this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV), CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
+        this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
     }
 
 }
