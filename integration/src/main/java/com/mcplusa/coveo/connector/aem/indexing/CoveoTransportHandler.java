@@ -17,6 +17,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mcplusa.coveo.connector.aem.service.CoveoQueueService;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
 import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
@@ -60,9 +61,13 @@ public class CoveoTransportHandler implements TransportHandler {
   protected AgentManager agentManager;
 
   @Reference
+  protected CoveoQueueService coveoQueueService;
+
+  @Reference
   protected CoveoService coveoService;
 
   private static final Logger LOG = LoggerFactory.getLogger(CoveoTransportHandler.class);
+  private static final String REPLICATION_ERROR_MSG = "Replication failed";
 
   /**
    *
@@ -86,16 +91,9 @@ public class CoveoTransportHandler implements TransportHandler {
   public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx) throws ReplicationException {
     ReplicationLog log = tx.getLog();
 
-    // TODO: the agent id should be a configuration
-    Agent agent = agentManager.getAgents().get("coveo-index");
-    if (agent.getQueue() != null) {
-      ReplicationQueue queue = agent.getQueue();
-
-      LOG.info("FILE {} - Queue {} - {} | {}", tx.getAction().getPath(), queue.getName(), queue.entries().size(),
-          agent.getConfiguration().getBatchMaxSize());
-
+    if (isFirstEntryOfBatch()) {
+      updateSourceStatus(PushAPIStatus.REFRESH, log);
     }
-
     try {
       CoveoPushClient pushClient = coveoService.getClient();
       log.debug(getClass().getSimpleName() + ": Using host: " + pushClient.getHost() + " org: "
@@ -117,8 +115,9 @@ public class CoveoTransportHandler implements TransportHandler {
           case DEACTIVATE:
             return doDeactivate(ctx, tx, pushClient);
           default:
-            log.warn(getClass().getSimpleName() + ": Replication action type" + replicationType + " not supported.");
-            throw new ReplicationException("Replication action type " + replicationType + " not supported.");
+            String errorMsg = "Replication action type " + replicationType + " not supported.";
+            log.warn(getClass().getSimpleName() + ": " + errorMsg);
+            throw new ReplicationException(errorMsg);
         }
       }
     } catch (JSONException jex) {
@@ -146,18 +145,22 @@ public class CoveoTransportHandler implements TransportHandler {
       LOG.debug(deleteResponse.toString());
       log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode()
           + ": " + deleteResponse.getStatusLine().getReasonPhrase());
+
+      if (isLastEntryOfBatch()) {
+        updateSourceStatus(PushAPIStatus.IDLE, log);
+      }
       if (deleteResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
         return ReplicationResult.OK;
       } else {
         LOG.error("Could not delete " + document.getMetadata("type", String.class) + " at "
             + document.getMetadata("path", String.class));
-        return new ReplicationResult(false, 0, "Replication failed");
+        return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
       }
     }
 
     updateSourceStatus(PushAPIStatus.IDLE, log);
     LOG.error("Could not delete");
-    return new ReplicationResult(false, 0, "Replication failed");
+    return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
   }
 
   /**
@@ -169,7 +172,7 @@ public class CoveoTransportHandler implements TransportHandler {
    * @param tx         ReplicationTransaction
    * @param restClient CoveoPushClient
    * @return ReplicationResult
-   * @throws ReplicationException
+   * @throws ReplicationException if an error occurs.
    */
   private ReplicationResult doActivate(TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
       throws ReplicationException, JSONException, IOException {
@@ -185,6 +188,11 @@ public class CoveoTransportHandler implements TransportHandler {
       LOG.debug(indexResponse.toString());
       log.info(getClass().getSimpleName() + ": " + indexResponse.getStatusLine().getStatusCode() + ": "
           + indexResponse.getStatusLine().getReasonPhrase());
+
+      if (isLastEntryOfBatch()) {
+        updateSourceStatus(PushAPIStatus.IDLE, log);
+      }
+
       if (indexResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
         return ReplicationResult.OK;
       }
@@ -192,7 +200,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
     updateSourceStatus(PushAPIStatus.IDLE, log);
     LOG.error("Could not replicate");
-    return new ReplicationResult(false, 0, "Replication failed");
+    return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
   }
 
   /**
@@ -211,6 +219,10 @@ public class CoveoTransportHandler implements TransportHandler {
     log.info(getClass().getSimpleName() + ": ---------------------------------------");
     log.info(getClass().getSimpleName() + ": " + testResponse.getStatusLine().getStatusCode() + ": "
         + testResponse.getStatusLine().getReasonPhrase());
+
+    if (isLastEntryOfBatch()) {
+      updateSourceStatus(PushAPIStatus.IDLE, log);
+    }
 
     if (testResponse.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
       log.info(getClass().getSimpleName() + ": The connection to Coveo has been successfully established.");
@@ -290,11 +302,11 @@ public class CoveoTransportHandler implements TransportHandler {
   }
 
   /**
-   * Extract the extension from URI
+   * Extract the extension from URI.
    *
-   * @param uri
-   * @return Optional<String> that contains the extension, it will be empty if the
-   *         URI doesn't contains an extension
+   * @param uri URI that should contain the file extension
+   * @return Optional that contains the extension, it will be empty if the URI
+   *         doesn't contains an extension
    */
   private Optional<String> getExtension(String uri) {
     int extensionIndex = uri.lastIndexOf(".");
@@ -350,5 +362,51 @@ public class CoveoTransportHandler implements TransportHandler {
     }
 
     return document.toString();
+  }
+
+  /**
+   * Check if is the first entry of the queue.
+   * 
+   * @return true if is the first entry.
+   */
+  private boolean isFirstEntryOfBatch() {
+    Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
+    if (agent.getQueue() != null) {
+      ReplicationQueue queue = agent.getQueue();
+
+      Map<String, Boolean> queueMap = coveoQueueService.getQueueMap();
+
+      // Check if the queue exist
+      if (queueMap != null && queueMap.containsKey(queue.getName())) {
+        return false;
+      } else if (queueMap != null) {
+        queueMap.put(queue.getName(), true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if is the last entry of the queue.
+   * 
+   * @return true if is the last entry.
+   */
+  private boolean isLastEntryOfBatch() {
+    Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
+    if (agent.getQueue() != null) {
+      ReplicationQueue queue = agent.getQueue();
+
+      Map<String, Boolean> queueMap = coveoQueueService.getQueueMap();
+
+      // If it the last item, remove it from the Map and return true
+      if (queueMap != null && queue.entries().size() <= 1) {
+        queueMap.remove(queue.getName());
+        return true;
+      }
+    }
+
+    return false;
   }
 }

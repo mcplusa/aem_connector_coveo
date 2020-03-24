@@ -103,11 +103,13 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                             Node node = adminSession.getNode(path);
 
                             JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
-                            List<Permission> acls = getACLs(policy, userManager);
-                            Type listType = new TypeToken<List<Permission>>() {
-                            }.getType();
-                            String aclJson = new Gson().toJson(acls, listType);
-                            ret.addContent("acl", aclJson);
+                            if (policy != null) {
+                                List<Permission> acls = getACLs(policy, userManager);
+                                Type listType = new TypeToken<List<Permission>>() {
+                                }.getType();
+                                String aclJson = new Gson().toJson(acls, listType);
+                                ret.addContent("acl", aclJson);
+                            }
                         }
                     } catch (Exception ex) {
                         LOG.error("error policy", ex);
