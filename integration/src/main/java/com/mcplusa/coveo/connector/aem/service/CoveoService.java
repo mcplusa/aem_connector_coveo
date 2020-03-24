@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Service keeping a connection to the Coveo Source
+ * Service keeping a connection to the Coveo Source.
  */
 @Component(metatype = false, immediate = true)
 @Service(CoveoService.class)

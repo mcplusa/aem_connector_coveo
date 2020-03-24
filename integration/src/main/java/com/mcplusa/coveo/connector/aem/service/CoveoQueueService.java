@@ -14,7 +14,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * Service that handle queues.
+ * Service to handle queues for an specific Agent.
  */
 @Component(metatype = false, immediate = true)
 @Service(CoveoQueueService.class)
