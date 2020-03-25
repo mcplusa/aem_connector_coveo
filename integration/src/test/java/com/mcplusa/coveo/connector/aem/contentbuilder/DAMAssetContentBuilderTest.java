@@ -27,7 +27,7 @@ public class DAMAssetContentBuilderTest {
         AppAemContext.loadVideoSampleContent(context);
         DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
 
-        IndexEntry entry = builder.create(AppAemContext.VIDEO, context.resourceResolver());
+        IndexEntry entry = builder.create(AppAemContext.VIDEO, context.resourceResolver(), true);
         assertNotNull(entry);
         assertEquals(AppAemContext.VIDEO, entry.getPath());
         assertEquals("asset", entry.getType());
@@ -48,11 +48,30 @@ public class DAMAssetContentBuilderTest {
     }
 
     @Test
+    public void testCreateVideoWithoutContent() {
+        AppAemContext.loadVideoSampleContent(context);
+        DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+
+        boolean includeContent = false;
+        IndexEntry entry = builder.create(AppAemContext.VIDEO, context.resourceResolver(), includeContent);
+        assertNotNull(entry);
+        assertEquals(AppAemContext.VIDEO, entry.getPath());
+        assertEquals("asset", entry.getType());
+        assertEquals("/content/video.mp4", entry.getDocumentId());
+        assertEquals(false, entry.getContent().containsKey("title"));
+        assertEquals(false, entry.getContent().containsKey("description"));
+        assertEquals(false, entry.getContent().containsKey("documenttype"));
+        assertEquals(false, entry.getContent().containsKey("author"));
+        assertEquals(false, entry.getContent().containsKey("duration"));
+        assertEquals(false, entry.getContent().containsKey("content"));
+    }
+
+    @Test
     public void testCreateImage() {
         AppAemContext.loadImageSampleContent(context);
         DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
 
-        IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver());
+        IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver(), true);
         assertNotNull(entry);
         assertEquals(AppAemContext.IMAGE, entry.getPath());
         assertEquals("asset", entry.getType());
@@ -69,7 +88,7 @@ public class DAMAssetContentBuilderTest {
         AppAemContext.loadPdfSampleContent(context);
         DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
 
-        IndexEntry entry = builder.create(AppAemContext.PDF, context.resourceResolver());
+        IndexEntry entry = builder.create(AppAemContext.PDF, context.resourceResolver(), true);
         assertNotNull(entry);
         assertEquals(AppAemContext.PDF, entry.getPath());
         assertEquals("asset", entry.getType());

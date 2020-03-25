@@ -52,7 +52,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
             "jcr:lastModified" };
 
     @Override
-    public IndexEntry create(String path, @Nonnull ResourceResolver resolver) {
+    public IndexEntry create(String path, @Nonnull ResourceResolver resolver, boolean includeContent) {
         String[] indexRules = getIndexRules(PRIMARY_TYPE_VALUE);
         if (ArrayUtils.isNotEmpty(indexRules)) {
             Externalizer externalizer = resolver.adaptTo(Externalizer.class);
@@ -65,102 +65,106 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                         documentId = externalizer.publishLink(resolver, path);
                     }
                     IndexEntry ret = new IndexEntry("idx", "asset", path);
-                    Map<String, Object> allProperties = getAllProperties(res);
-                    ret.addContent(getProperties(res, indexRules));
 
-                    // Extract additional properties from the Node
-                    try {
-                        Session adminSession = resolver.adaptTo(Session.class);
-                        Node node = adminSession.getNode(path);
-                        JsonObject content = toJson(node).getAsJsonObject("jcr:content");
-                        if (content != null) {
-                            Map<String, Object> allprops = getJsonProperties(content, indexRules);
-                            ret.addContent(allprops);
-                        }
-                    } catch (Exception ex) {
-                        LOG.error("Could not extract additionals properties from the node", ex);
-                    }
-
-                    if (this.<String>getLastValue(allProperties, "dc:title") != null) {
-                        ret.addContent("title", this.<String>getLastValue(allProperties, "dc:title"));
-                    } else if (asset.getName() != null) {
-                        ret.addContent("title", asset.getName());
-                    }
-
-                    if (this.<String>getLastValue(allProperties, "dc:description") != null) {
-                        String description = this.<String>getLastValue(allProperties, "dc:description");
-                        if (description == null || description.equals("null")) {
-                            description = "";
-                        }
-                        ret.addContent("description", description);
-                    }
-
-                    if (MimeTypes.Text.isText(asset.getMimeType()) != null
-                            || MimeTypes.Image.isImage(asset.getMimeType()) != null
-                            || MimeTypes.getType(asset.getMimeType()).isEmpty()) {
-                        Rendition original = asset.getOriginal();
-                        if (original != null) {
-                            InputStream is = original.getStream();
-                            if (is != null) {
-                                String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
-                                ret.addContent("content", content);
+                    if (includeContent) {
+                        Map<String, Object> allProperties = getAllProperties(res);
+                        ret.addContent(getProperties(res, indexRules));
+                    
+                        // Extract additional properties from the Node
+                        try {
+                            Session adminSession = resolver.adaptTo(Session.class);
+                            Node node = adminSession.getNode(path);
+                            JsonObject content = toJson(node).getAsJsonObject("jcr:content");
+                            if (content != null) {
+                                Map<String, Object> allprops = getJsonProperties(content, indexRules);
+                                ret.addContent(allprops);
                             }
+                        } catch (Exception ex) {
+                            LOG.error("Could not extract additionals properties from the node", ex);
                         }
 
-                    } else if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
-                        String data = getVideoData(documentId, asset.getMimeType(), ret.getContent("title", String.class), ret.getContent("description", String.class));
-
-                        String content = Base64.getEncoder().encodeToString(data.getBytes());
-                        ret.addContent("content", content);
-                    }
-
-                    ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
-
-                    if (this.<String>getLastValue(res.getValueMap(), "jcr:createdBy") != null)
-                        ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
-
-                    if (this.<Long>getLastValue(res.getValueMap(), "jcr:created") != null)
-                        ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
-
-                    ret.addContent("lastmodified", asset.getLastModified());
-                    ret.addContent("previewUrl", documentId);
-
-                    if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
-                        Long videoDuration = this.<Long>getLastValue(allProperties, "videoDuration");
-
-                        if (videoDuration != null)
-                            ret.addContent("duration", videoDuration);
-                    }
-
-                    if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
-                        Long width = this.<Long>getLastValue(allProperties, "tiff:ImageWidth");
-                        Long height = this.<Long>getLastValue(allProperties, "tiff:ImageLength");
-
-                        if (width != null)
-                            ret.addContent("width", width);
-
-                        if (height != null)
-                            ret.addContent("height", height);
-                    }
-
-                    // Retrieve ACLs from policy
-                    try {
-                        ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
-                        Session adminSession = resourceResolver.adaptTo(Session.class);
-                        UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-
-                        Node node = adminSession.getNode(path);
-
-                        JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
-                        if (policy != null) {
-                            List<Permission> acls = getACLs(policy, userManager);
-                            Type listType = new TypeToken<List<Permission>>() {
-                            }.getType();
-                            String aclJson = new Gson().toJson(acls, listType);
-                            ret.addContent("acl", aclJson);
+                        if (this.<String>getLastValue(allProperties, "dc:title") != null) {
+                            ret.addContent("title", this.<String>getLastValue(allProperties, "dc:title"));
+                        } else if (asset.getName() != null) {
+                            ret.addContent("title", asset.getName());
                         }
-                    } catch (Exception ex) {
-                        LOG.error("error policy", ex);
+
+                        if (this.<String>getLastValue(allProperties, "dc:description") != null) {
+                            String description = this.<String>getLastValue(allProperties, "dc:description");
+                            if (description == null || description.equals("null")) {
+                                description = "";
+                            }
+                            ret.addContent("description", description);
+                        }
+
+                        if (MimeTypes.Text.isText(asset.getMimeType()) != null
+                                || MimeTypes.Image.isImage(asset.getMimeType()) != null
+                                || MimeTypes.getType(asset.getMimeType()).isEmpty()) {
+                            Rendition original = asset.getOriginal();
+                            if (original != null) {
+                                InputStream is = original.getStream();
+                                if (is != null) {
+                                    String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
+                                    ret.addContent("content", content);
+                                }
+                            }
+
+                        } else if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
+                            String data = getVideoData(documentId, asset.getMimeType(), ret.getContent("title", String.class), ret.getContent("description", String.class));
+
+                            String content = Base64.getEncoder().encodeToString(data.getBytes());
+                            ret.addContent("content", content);
+                        }
+
+                        ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
+
+                        if (this.<String>getLastValue(res.getValueMap(), "jcr:createdBy") != null)
+                            ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+
+                        if (this.<Long>getLastValue(res.getValueMap(), "jcr:created") != null)
+                            ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+
+                        ret.addContent("lastmodified", asset.getLastModified());
+                        ret.addContent("previewUrl", documentId);
+
+                        if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
+                            Long videoDuration = this.<Long>getLastValue(allProperties, "videoDuration");
+
+                            if (videoDuration != null)
+                                ret.addContent("duration", videoDuration);
+                        }
+
+                        if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
+                            Long width = this.<Long>getLastValue(allProperties, "tiff:ImageWidth");
+                            Long height = this.<Long>getLastValue(allProperties, "tiff:ImageLength");
+
+                            if (width != null)
+                                ret.addContent("width", width);
+
+                            if (height != null)
+                                ret.addContent("height", height);
+                        }
+
+                        // Retrieve ACLs from policy
+                        try {
+                            ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+                            Session adminSession = resourceResolver.adaptTo(Session.class);
+                            UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+
+                            Node node = adminSession.getNode(path);
+
+                            JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                            if (policy != null) {
+                                List<Permission> acls = getACLs(policy, userManager);
+                                Type listType = new TypeToken<List<Permission>>() {
+                                }.getType();
+                                String aclJson = new Gson().toJson(acls, listType);
+                                ret.addContent("acl", aclJson);
+                            }
+                        } catch (Exception ex) {
+                            LOG.error("error policy", ex);
+                        }
+
                     }
 
                     ret.setDocumentId(documentId);
