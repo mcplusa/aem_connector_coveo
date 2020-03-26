@@ -91,7 +91,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         ValueMap vm = res.getValueMap();
         Map<String, Object> ret = Arrays.stream(properties)
                 .filter(property -> vm.containsKey(property) && vm.get(property) != null)
-                .collect(Collectors.toMap(Function.identity(), property -> vm.get(property)));
+                .collect(Collectors.toMap(Function.identity(), property -> vm.get(property), (a, b) -> a));
 
         for (Resource child : res.getChildren()) {
             Map<String, Object> props = getProperties(child, properties);
