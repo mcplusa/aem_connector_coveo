@@ -15,21 +15,28 @@ import com.day.cq.replication.TransportHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.service.CoveoQueueService;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
+import com.mcplusa.coveo.sdk.CoveoResponseException;
 import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
+import com.mcplusa.coveo.sdk.pushapi.model.BatchRequest;
 import com.mcplusa.coveo.sdk.pushapi.model.CompressionType;
 import com.mcplusa.coveo.sdk.pushapi.model.Document;
+import com.mcplusa.coveo.sdk.pushapi.model.FileContainerResponse;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityModel;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityType;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionsSetsModel;
 import com.mcplusa.coveo.sdk.pushapi.model.PushAPIStatus;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -105,8 +112,9 @@ public class CoveoTransportHandler implements TransportHandler {
       } else {
         log.info(getClass().getSimpleName() + ": ---------------------------------------");
         if (tx.getContent() == ReplicationContent.VOID) {
-          LOG.warn("No Replication Content provided");
-          return new ReplicationResult(true, 0, "No Replication Content provided for path " + tx.getAction().getPath());
+          String errorMsg = "No Replication Content provided";
+          LOG.warn(errorMsg);
+          return new ReplicationResult(true, 0, errorMsg + " for path " + tx.getAction().getPath());
         }
         switch (replicationType) {
           case ACTIVATE:
@@ -117,15 +125,23 @@ public class CoveoTransportHandler implements TransportHandler {
           default:
             String errorMsg = "Replication action type " + replicationType + " not supported.";
             log.warn(getClass().getSimpleName() + ": " + errorMsg);
+            if (isLastEntryOfBatch()) {
+              updateSourceStatus(PushAPIStatus.IDLE, log);
+              pushToFileContainer(log);
+            }
             throw new ReplicationException(errorMsg);
         }
       }
     } catch (JSONException jex) {
       updateSourceStatus(PushAPIStatus.IDLE, log);
+      pushToFileContainer(log);
+
       LOG.error("JSON was invalid", jex);
       return new ReplicationResult(false, 0, jex.getLocalizedMessage());
     } catch (IOException ioe) {
       updateSourceStatus(PushAPIStatus.IDLE, log);
+      pushToFileContainer(log);
+
       log.error(getClass().getSimpleName() + ": Could not perform Indexing due to " + ioe.getLocalizedMessage());
       LOG.error("Could not perform Indexing", ioe);
       return new ReplicationResult(false, 0, ioe.getLocalizedMessage());
@@ -140,21 +156,29 @@ public class CoveoTransportHandler implements TransportHandler {
     IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
     if (entry != null) {
       Document document = indexEntryToDocument(entry);
-      CoveoResponse deleteResponse = pushClient.deleteDocument(document.getDocumentId());
 
-      LOG.debug(deleteResponse.toString());
-      log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode()
-          + ": " + deleteResponse.getStatusLine().getReasonPhrase());
+      Optional<ReplicationQueue> queue = this.getReplicationQueue();
+      if (queue.isPresent()) {
+        this.coveoQueueService.deleteDocument(queue.get().getName(), entry.getDocumentId());
+      }
 
       if (isLastEntryOfBatch()) {
         updateSourceStatus(PushAPIStatus.IDLE, log);
-      }
-      if (deleteResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
-        return ReplicationResult.OK;
+        CoveoResponse batchResponse = pushToFileContainer(log);
+        LOG.debug(batchResponse.toString());
+        log.info(getClass().getSimpleName() + ": Delete Call returned " + batchResponse.getStatusLine().getStatusCode()
+            + ": " + batchResponse.getStatusLine().getReasonPhrase());
+
+        if (batchResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
+          return ReplicationResult.OK;
+        } else {
+          LOG.error("Could not delete " + document.getMetadata("type", String.class) + " at "
+              + document.getMetadata("path", String.class));
+          return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
+        }
+
       } else {
-        LOG.error("Could not delete " + document.getMetadata("type", String.class) + " at "
-            + document.getMetadata("path", String.class));
-        return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
+        return ReplicationResult.OK;
       }
     }
 
@@ -184,16 +208,23 @@ public class CoveoTransportHandler implements TransportHandler {
       log.debug("Document: " + printDocument(document));
       log.info(getClass().getSimpleName() + ": Indexing " + document.getDocumentId());
 
-      CoveoResponse indexResponse = pushClient.pushSingleDocument(document);
-      LOG.debug(indexResponse.toString());
-      log.info(getClass().getSimpleName() + ": " + indexResponse.getStatusLine().getStatusCode() + ": "
-          + indexResponse.getStatusLine().getReasonPhrase());
-
-      if (isLastEntryOfBatch()) {
-        updateSourceStatus(PushAPIStatus.IDLE, log);
+      Optional<ReplicationQueue> queue = this.getReplicationQueue();
+      if (queue.isPresent()) {
+        this.coveoQueueService.addDocument(queue.get().getName(), document);
       }
 
-      if (indexResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
+      if (isLastEntryOfBatch()) {
+        CoveoResponse batchResponse = pushToFileContainer(log);
+        updateSourceStatus(PushAPIStatus.IDLE, log);
+
+        if (batchResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
+          return ReplicationResult.OK;
+        } else {
+          LOG.error("Could not push batch of documents: {}", batchResponse);
+          return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
+        }
+
+      } else {
         return ReplicationResult.OK;
       }
     }
@@ -219,11 +250,6 @@ public class CoveoTransportHandler implements TransportHandler {
     log.info(getClass().getSimpleName() + ": ---------------------------------------");
     log.info(getClass().getSimpleName() + ": " + testResponse.getStatusLine().getStatusCode() + ": "
         + testResponse.getStatusLine().getReasonPhrase());
-
-    if (isLastEntryOfBatch()) {
-      updateSourceStatus(PushAPIStatus.IDLE, log);
-    }
-
     if (testResponse.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
       log.info(getClass().getSimpleName() + ": The connection to Coveo has been successfully established.");
       return ReplicationResult.OK;
@@ -272,6 +298,12 @@ public class CoveoTransportHandler implements TransportHandler {
     if (data != null) {
       doc.setCompressionType(CompressionType.UNCOMPRESSED);
       doc.addMetadata("CompressedBinaryData", data, String.class);
+    }
+
+    String fileId = indexEntry.getContent("fileId", String.class);
+    if (fileId != null) {
+      doc.setCompressionType(CompressionType.UNCOMPRESSED);
+      doc.addMetadata("compressedBinaryDataFileId", data, String.class);
     }
 
     // Implement permission
@@ -364,23 +396,32 @@ public class CoveoTransportHandler implements TransportHandler {
     return document.toString();
   }
 
+  private Optional<ReplicationQueue> getReplicationQueue() {
+    Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
+    if (agent.getQueue() != null) {
+      ReplicationQueue queue = agent.getQueue();
+
+      return Optional.ofNullable(queue);
+    }
+
+    return Optional.empty();
+  }
+
   /**
    * Check if is the first entry of the queue.
    * 
    * @return true if is the first entry.
    */
   private boolean isFirstEntryOfBatch() {
-    Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
-    if (agent.getQueue() != null) {
-      ReplicationQueue queue = agent.getQueue();
-
-      Map<String, Boolean> queueMap = coveoQueueService.getQueueMap();
+    Optional<ReplicationQueue> queue = getReplicationQueue();
+    if (queue.isPresent()) {
+      Map<String, BatchRequest> queueMap = coveoQueueService.getQueueMap();
 
       // Check if the queue exist
-      if (queueMap != null && queueMap.containsKey(queue.getName())) {
+      if (queueMap != null && queueMap.containsKey(queue.get().getName())) {
         return false;
       } else if (queueMap != null) {
-        queueMap.put(queue.getName(), true);
+        queueMap.put(queue.get().getName(), new BatchRequest());
         return true;
       }
     }
@@ -391,22 +432,57 @@ public class CoveoTransportHandler implements TransportHandler {
   /**
    * Check if is the last entry of the queue.
    * 
-   * @return true if is the last entry.
+   * @return Optional will contain the queue name if it is the last entry
    */
   private boolean isLastEntryOfBatch() {
-    Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
-    if (agent.getQueue() != null) {
-      ReplicationQueue queue = agent.getQueue();
-
-      Map<String, Boolean> queueMap = coveoQueueService.getQueueMap();
+    Optional<ReplicationQueue> queue = getReplicationQueue();
+    if (queue.isPresent()) {
+      Map<String, BatchRequest> queueMap = coveoQueueService.getQueueMap();
 
       // If it the last item, remove it from the Map and return true
-      if (queueMap != null && queue.entries().size() <= 1) {
-        queueMap.remove(queue.getName());
+      if (queueMap != null && queue.get().entries().size() <= 1) {
         return true;
       }
     }
 
     return false;
+  }
+
+  /**
+   * Get a FileContainer and push the batch file to the S3 instance.
+   * 
+   * @param batchRequest contains the list of documents to add/update/delete.
+   * @return the fileId of the FileContainer.
+   */
+  private CoveoResponse pushToFileContainer(ReplicationLog log) {
+    Optional<ReplicationQueue> queue = getReplicationQueue();
+    if (queue.isPresent()) {
+      BatchRequest batchRequest = this.coveoQueueService.getQueueMap().get(queue.get().getName());
+      int addOrUpdateSize = batchRequest.getAddOrUpdate().size();
+      int deleteSize = batchRequest.getDelete().size();
+      log.debug("Batch: Add size " + addOrUpdateSize + " | Delete size " + deleteSize);
+
+      Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+      String json = gson.toJson(batchRequest);
+
+      try (InputStream is = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))) {
+
+        CoveoPushClient client = coveoService.getClient();
+        FileContainerResponse fileContainer = client.getFileContainer();
+
+        CoveoResponse response = client.pushFileOnS3(is, fileContainer.getUploadUri());
+        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+          log.info("Batch of files pushed");
+          this.coveoQueueService.getQueueMap().remove(queue.get().getName());
+          return this.coveoService.getClient().pushDocumentsBatch(fileContainer.getFileId());
+        }
+
+        throw new CoveoResponseException(response);
+      } catch (Exception e) {
+        LOG.error("Could not push the data to the file Container", e);
+      }
+    }
+
+    return null;
   }
 }
