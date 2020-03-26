@@ -1,5 +1,8 @@
 package com.mcplusa.coveo.connector.aem.service;
 
+import com.mcplusa.coveo.sdk.pushapi.model.BatchRequest;
+import com.mcplusa.coveo.sdk.pushapi.model.Document;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,7 +27,7 @@ public class CoveoQueueService {
   protected CoveoHostConfiguration hostConfiguration;
 
   @Getter
-  private Map<String, Boolean> queueMap;
+  private Map<String, BatchRequest> queueMap;
 
   @Getter
   private String agentId;
@@ -39,6 +42,34 @@ public class CoveoQueueService {
   public void deactivate(ComponentContext context) {
     if (this.queueMap != null) {
       this.queueMap.clear();
+    }
+  }
+
+  /**
+   * Push a document to the addOrUpdate list.
+   * 
+   * @param queueName key of the map
+   * @param document  document to push
+   */
+  public void addDocument(String queueName, Document document) {
+    if (queueMap.containsKey(queueName)) {
+      BatchRequest batchRequest = queueMap.get(queueName);
+      batchRequest.pushDocument(document);
+      queueMap.put(queueName, batchRequest);
+    }
+  }
+
+  /**
+   * Push a document to the delete list.
+   * 
+   * @param queueName  key of the map
+   * @param documentId documentId to push
+   */
+  public void deleteDocument(String queueName, String documentId) {
+    if (queueMap.containsKey(queueName)) {
+      BatchRequest batchRequest = queueMap.get(queueName);
+      batchRequest.deleteDocument(documentId, true);
+      queueMap.put(queueName, batchRequest);
     }
   }
 }
