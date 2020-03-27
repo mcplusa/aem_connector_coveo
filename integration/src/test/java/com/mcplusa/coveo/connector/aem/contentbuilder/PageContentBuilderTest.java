@@ -42,7 +42,8 @@ public class PageContentBuilderTest {
         };
         mockReferences(builder);
 
-        IndexEntry entry = builder.create(AppAemContext.PAGE, context.resourceResolver());
+        boolean includeContent = true;
+        IndexEntry entry = builder.create(AppAemContext.PAGE, context.resourceResolver(), includeContent);
         assertNotNull(entry);
         assertEquals(AppAemContext.PAGE, entry.getPath());
         assertEquals("page", entry.getType());
@@ -63,6 +64,28 @@ public class PageContentBuilderTest {
         assertEquals(String.class, cascade[1].getClass());
         assertEquals(String.class, cascade[2].getClass());
 
+        assertEquals(false, entry.getContent().containsKey("notexist"));
+        assertEquals(false, entry.getContent().containsKey("nullprop"));
+    }
+
+    @Test
+    public void testCreateWithoutContent() {
+        PageContentBuilder builder = new PageContentBuilder() {
+            @Override
+            public String[] getIndexRules(String primaryType) {
+                return new String[]{"foobar", "childFoo", "boolean", "multi", "cascade", "double", "ipsum", "cq:template"};
+            }
+        };
+        mockReferences(builder);
+        boolean includeContent = false;
+        IndexEntry entry = builder.create(AppAemContext.PAGE, context.resourceResolver(), includeContent);
+        assertNotNull(entry);
+        assertEquals(AppAemContext.PAGE, entry.getPath());
+        assertEquals("page", entry.getType());
+        assertEquals("/content/foobar", entry.getDocumentId());
+        assertEquals(false, entry.getContent().containsKey("cq:template"));
+        assertEquals(false, entry.getContent().containsKey("foobar"));
+        assertEquals(false, entry.getContent().containsKey("childFoo"));
         assertEquals(false, entry.getContent().containsKey("notexist"));
         assertEquals(false, entry.getContent().containsKey("nullprop"));
     }
