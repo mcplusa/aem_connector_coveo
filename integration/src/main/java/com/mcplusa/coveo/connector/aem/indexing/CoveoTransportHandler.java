@@ -118,15 +118,14 @@ public class CoveoTransportHandler implements TransportHandler {
         ObjectMapper mapper = new ObjectMapper();
         IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
         if (entry != null) {
-            Document document = indexEntryToDocument(entry);
-            CoveoResponse deleteResponse = pushClient.deleteDocument(document.getDocumentId());
+            CoveoResponse deleteResponse = pushClient.deleteDocument(entry.getDocumentId());
 
-            LOG.debug(deleteResponse.toString());
+            LOG.debug("Response: {}", deleteResponse);
             log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode() + ": " + deleteResponse.getStatusLine().getReasonPhrase());
             if (deleteResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
                 return ReplicationResult.OK;
             } else {
-                LOG.error("Could not delete " + document.getMetadata("type", String.class) + " at " + document.getMetadata("path", String.class));
+                LOG.error("Could not delete {}", entry.getDocumentId());
                 return new ReplicationResult(false, 0, "Replication failed");
             }
         }
