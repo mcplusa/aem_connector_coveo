@@ -139,27 +139,22 @@ public class CoveoTransportHandler implements TransportHandler {
     ObjectMapper mapper = new ObjectMapper();
     IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
     if (entry != null) {
-      Document document = indexEntryToDocument(entry);
-      CoveoResponse deleteResponse = pushClient.deleteDocument(document.getDocumentId());
+      CoveoResponse deleteResponse = pushClient.deleteDocument(entry.getDocumentId());
 
-      LOG.debug(deleteResponse.toString());
-      log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode()
-          + ": " + deleteResponse.getStatusLine().getReasonPhrase());
-
+      log.info(getClass().getSimpleName() + ": Delete Call returned " + deleteResponse.getStatusLine().getStatusCode() + ": " + deleteResponse.getStatusLine().getReasonPhrase());
       if (isLastEntryOfBatch()) {
         updateSourceStatus(PushAPIStatus.IDLE, log);
       }
       if (deleteResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
         return ReplicationResult.OK;
       } else {
-        LOG.error("Could not delete " + document.getMetadata("type", String.class) + " at "
-            + document.getMetadata("path", String.class));
+        LOG.error("Could not delete {}", entry.getDocumentId());
         return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
       }
     }
 
     updateSourceStatus(PushAPIStatus.IDLE, log);
-    LOG.error("Could not delete");
+    LOG.error("Could not delete {}", tx.getAction().getPath());
     return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
   }
 

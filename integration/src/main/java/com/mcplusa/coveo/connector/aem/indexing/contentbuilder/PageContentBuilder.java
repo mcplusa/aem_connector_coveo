@@ -58,7 +58,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
     private static final String[] FIXED_RULES = {"cq:lastModified", "cq:template", "jcr:description", "jcr:title", "rep:policy"};
 
     @Override
-    public IndexEntry create(String path, @Nonnull ResourceResolver resolver) {
+    public IndexEntry create(String path, @Nonnull ResourceResolver resolver, boolean includeContent) {
         String[] indexRules = getIndexRules(PRIMARY_TYPE_VALUE);
         if (ArrayUtils.isNotEmpty(indexRules)) {
             Externalizer externalizer = resolver.adaptTo(Externalizer.class);
@@ -72,47 +72,50 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                     }
                     Resource res = page.getContentResource();
                     IndexEntry ret = new IndexEntry("idx", "page", path);
-                    ret.addContent(getProperties(res, indexRules));
-
-                    // Extract additional properties from the Node
-                    try {
-                        Session adminSession = resolver.adaptTo(Session.class);
-                        Node node = adminSession.getNode(path);
-                        JsonObject content = toJson(node).getAsJsonObject("jcr:content");
-                        if (content != null) {
-                            Map<String, Object> allprops = getJsonProperties(content, indexRules);
-                            ret.addContent(allprops);
-                        }
-                    } catch (Exception ex) {
-                        LOG.error("Could not extract additionals properties from the node", ex);
-                    }
-
                     ret.setDocumentId(documentId);
-                    ret.addContent("title", page.getTitle());
-                    ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
-                    ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
-                    ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
-                    ret.addContent("content", getHtmlContent(resolver, path + ".html"));
 
-                    try {
-                        ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
-                        Session adminSession = resourceResolver.adaptTo(Session.class);
-                        UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+                    if (includeContent) {
+                        ret.addContent(getProperties(res, indexRules));
 
-                        if (adminSession != null) {
+                        // Extract additional properties from the Node
+                        try {
+                            Session adminSession = resolver.adaptTo(Session.class);
                             Node node = adminSession.getNode(path);
-
-                            JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
-                            if (policy != null) {
-                                List<Permission> acls = getACLs(policy, userManager);
-                                Type listType = new TypeToken<List<Permission>>() {
-                                }.getType();
-                                String aclJson = new Gson().toJson(acls, listType);
-                                ret.addContent("acl", aclJson);
+                            JsonObject content = toJson(node).getAsJsonObject("jcr:content");
+                            if (content != null) {
+                                Map<String, Object> allprops = getJsonProperties(content, indexRules);
+                                ret.addContent(allprops);
                             }
+                        } catch (Exception ex) {
+                            LOG.error("Could not extract additionals properties from the node", ex);
                         }
-                    } catch (Exception ex) {
-                        LOG.error("error policy", ex);
+
+                        ret.addContent("title", page.getTitle());
+                        ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                        ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
+                        ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+                        ret.addContent("content", getHtmlContent(resolver, path + ".html"));
+
+                        try {
+                            ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+                            Session adminSession = resourceResolver.adaptTo(Session.class);
+                            UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+
+                            if (adminSession != null) {
+                                Node node = adminSession.getNode(path);
+
+                                JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                                if (policy != null) {
+                                    List<Permission> acls = getACLs(policy, userManager);
+                                    Type listType = new TypeToken<List<Permission>>() {
+                                    }.getType();
+                                    String aclJson = new Gson().toJson(acls, listType);
+                                    ret.addContent("acl", aclJson);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            LOG.error("error policy", ex);
+                        }
                     }
 
                     return ret;

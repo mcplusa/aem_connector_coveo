@@ -3,6 +3,7 @@ package com.mcplusa.coveo.connector.aem.indexing;
 import com.day.cq.commons.jcr.JcrConstants;
 import com.day.cq.replication.ContentBuilder;
 import com.day.cq.replication.ReplicationAction;
+import com.day.cq.replication.ReplicationActionType;
 import com.day.cq.replication.ReplicationContent;
 import com.day.cq.replication.ReplicationContentFactory;
 import com.day.cq.replication.ReplicationException;
@@ -72,6 +73,7 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
         String path = action.getPath();
         
         ReplicationLog log = action.getLog();
+        boolean includeContent = action.getType().equals(ReplicationActionType.ACTIVATE);
 
         if (StringUtils.isNotBlank(path)) {
             try {
@@ -84,7 +86,7 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
                     String primaryType = resource.getValueMap().get(JcrConstants.JCR_PRIMARYTYPE, String.class);
                     CoveoContentBuilder builder = getContentBuilder(primaryType, log);
                     if (builder != null) {
-                        return createReplicationContent(factory, builder.create(path, resolver));
+                        return createReplicationContent(factory, builder.create(path, resolver, includeContent));
                     } else {
                         log.error(getClass().getSimpleName() + ": builder is null");
                     }
