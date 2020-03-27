@@ -110,7 +110,7 @@ public class DAMAssetContentBuilderTest {
             }
         };
 
-        IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver());
+        IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver(), true);
         assertNotNull(entry);
         assertEquals(AppAemContext.IMAGE, entry.getPath());
         assertEquals("asset", entry.getType());
