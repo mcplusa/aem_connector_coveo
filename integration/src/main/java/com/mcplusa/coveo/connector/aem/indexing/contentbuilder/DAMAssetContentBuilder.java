@@ -21,12 +21,17 @@ import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
+import com.mcplusa.coveo.connector.aem.service.CoveoService;
+import com.mcplusa.coveo.sdk.CoveoResponse;
+import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
+import com.mcplusa.coveo.sdk.pushapi.model.FileContainerResponse;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.http.HttpStatus;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -44,6 +49,9 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
 
     @Reference
     ResourceResolverFactory resolverFactory;
+
+    @Reference
+    protected CoveoService coveoService;
 
     private static final Logger LOG = LoggerFactory.getLogger(DAMAssetContentBuilder.class);
     public static final String PRIMARY_TYPE_VALUE = "dam:Asset";
@@ -72,8 +80,8 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                     
                         // Extract additional properties from the Node
                         try {
-                            Session adminSession = resolver.adaptTo(Session.class);
-                            Node node = adminSession.getNode(path);
+                            Session session = resolver.adaptTo(Session.class);
+                            Node node = session.getNode(path);
                             JsonObject content = toJson(node).getAsJsonObject("jcr:content");
                             if (content != null) {
                                 Map<String, Object> allprops = getJsonProperties(content, indexRules);
@@ -103,9 +111,10 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                             Rendition original = asset.getOriginal();
                             if (original != null) {
                                 InputStream is = original.getStream();
+
                                 if (is != null) {
-                                    String content = Base64.getEncoder().encodeToString(inputStreamToByteArray(is));
-                                    ret.addContent("content", content);
+                                    String content = pushToFileContainer(is);
+                                    ret.addContent("fileId", content);
                                 }
                             }
 
@@ -181,33 +190,6 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
         return FIXED_RULES;
     }
 
-    private byte[] inputStreamToByteArray(InputStream is) {
-        ByteArrayOutputStream buffer = null;
-        try {
-            buffer = new ByteArrayOutputStream();
-            int nRead;
-            byte[] data = new byte[1024];
-            while ((nRead = is.read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, nRead);
-            }
-
-            buffer.flush();
-            return buffer.toByteArray();
-        } catch (IOException ex) {
-            LOG.error("Error trying to convert input stream to byte[]", ex);
-            return null;
-        } finally {
-            try {
-                is.close();
-                if (buffer != null) {
-                    buffer.close();
-                }
-            } catch (IOException ex) {
-                LOG.error("Error closing inputstream", ex);
-            }
-        }
-    }
-
     /**
      * Generate a html content with a video player
      * 
@@ -228,5 +210,26 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                 .append(title).append("</h3><p style=\"text-align: justify;\">")
                 .append(description != null ? description : "").append("</p></div></div></body></html>");
         return sb.toString();
+    }
+
+    /**
+     * Get a FileContainer and push the data to the S3 instance.
+     * @param is InputStream of the document.
+     * @return the fileId of the FileContainer.
+     */
+    private String pushToFileContainer(InputStream is) {
+        try {
+            CoveoPushClient client = coveoService.getClient();
+            FileContainerResponse fileContainer = client.getFileContainer();
+
+            CoveoResponse response = client.pushFileOnS3(is, fileContainer.getUploadUri());
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                return fileContainer.getFileId();
+            }
+        } catch (Exception e) {
+            LOG.error("Could not push the data to the file Container", e);
+        }
+
+        return null;
     }
 }

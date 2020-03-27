@@ -87,11 +87,7 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
                     CoveoContentBuilder builder = getContentBuilder(primaryType, log);
                     if (builder != null) {
                         return createReplicationContent(factory, builder.create(path, resolver, includeContent));
-                    } else {
-                        log.error(getClass().getSimpleName() + ": builder is null");
                     }
-                } else {
-                    log.error(getClass().getSimpleName() + ": resource is null");
                 }
             } catch (LoginException e) {
                 log.error("Could not retrieve Page Manager", e);
