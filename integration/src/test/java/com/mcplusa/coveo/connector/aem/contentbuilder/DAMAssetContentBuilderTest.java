@@ -99,4 +99,20 @@ public class DAMAssetContentBuilderTest {
         assertEquals(false, entry.getContent().containsKey("notexist"));
         assertEquals(false, entry.getContent().containsKey("nullprop"));
     }
+
+    @Test
+    public void testCreateWithDuplicatedKeys() {
+        AppAemContext.loadImageSampleContent(context);
+        DAMAssetContentBuilder builder = new DAMAssetContentBuilder() {
+            @Override
+            public String[] getIndexRules(String primaryType) {
+                return new String[]{"dc:title", "jcr:lastModified", "jcr:lastModified"};
+            }
+        };
+
+        IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver());
+        assertNotNull(entry);
+        assertEquals(AppAemContext.IMAGE, entry.getPath());
+        assertEquals("asset", entry.getType());
+    }
 }
