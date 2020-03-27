@@ -178,6 +178,7 @@ public class CoveoTransportHandler implements TransportHandler {
         }
 
       } else {
+        log.info("File " + entry.getDocumentId() + " added to the batch.");
         return ReplicationResult.OK;
       }
     }
@@ -225,6 +226,7 @@ public class CoveoTransportHandler implements TransportHandler {
         }
 
       } else {
+        log.info("File " + entry.getDocumentId() + " added to the batch.");
         return ReplicationResult.OK;
       }
     }
