@@ -90,9 +90,12 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                     ret.setDocumentId(documentId);
                     ret.addContent("title", page.getTitle());
                     ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
-                    ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
                     ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
                     ret.addContent("content", getHtmlContent(resolver, path + ".html"));
+                    
+                    if (page.getLastModified() != null) {
+                        ret.addContent("lastmodified", page.getLastModified().getTimeInMillis());
+                    }
 
                     try {
                         ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
