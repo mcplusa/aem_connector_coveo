@@ -317,9 +317,9 @@ public class CoveoTransportHandler implements TransportHandler {
           IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
 
           if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
-            psm.addAllowedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+            psm.addAllowedPermission(new IdentityModel(p.getPrincipalName(), identityType, null));
           } else {
-            psm.addDeniedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+            psm.addDeniedPermission(new IdentityModel(p.getPrincipalName(), identityType, null));
           }
         }
       }
