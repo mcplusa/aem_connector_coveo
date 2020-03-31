@@ -77,7 +77,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(CoveoTransportHandler.class);
   private static final String REPLICATION_ERROR_MSG = "Replication failed";
-  private static final String AGENT_NOT_FOUND = "The Agent Id can not be found. Check that agentId is configured properly in the Coveo Provider settings.";
+  private static final String AGENT_NOT_FOUND = "The Agent can not be found. Check that agentId is configured properly in the Coveo Provider settings.";
 
   /**
    *
