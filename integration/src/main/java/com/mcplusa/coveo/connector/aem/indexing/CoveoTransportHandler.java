@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.naming.ConfigurationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -75,6 +77,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(CoveoTransportHandler.class);
   private static final String REPLICATION_ERROR_MSG = "Replication failed";
+  private static final String AGENT_NOT_FOUND = "The Agent Id can not be found. Check that agentId is configured properly in the Coveo Provider settings.";
 
   /**
    *
@@ -97,6 +100,14 @@ public class CoveoTransportHandler implements TransportHandler {
   @Override
   public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx) throws ReplicationException {
     ReplicationLog log = tx.getLog();
+
+    // Check if agent is configured.
+    Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
+    if (agent == null) {
+      log.error(getClass().getSimpleName() + ": " + AGENT_NOT_FOUND + " current agentId: '" + coveoQueueService.getAgentId() + "'");
+      LOG.error("{} current agentId: '{}'", AGENT_NOT_FOUND, coveoQueueService.getAgentId());
+      return new ReplicationResult(false, 0, AGENT_NOT_FOUND + " current agentId: '" + coveoQueueService.getAgentId() + "'");
+    }
 
     if (isFirstEntryOfBatch()) {
       updateSourceStatus(PushAPIStatus.REFRESH, log);
@@ -397,7 +408,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
   private Optional<ReplicationQueue> getReplicationQueue() {
     Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
-    if (agent.getQueue() != null) {
+    if (agent != null && agent.getQueue() != null) {
       ReplicationQueue queue = agent.getQueue();
 
       return Optional.ofNullable(queue);
