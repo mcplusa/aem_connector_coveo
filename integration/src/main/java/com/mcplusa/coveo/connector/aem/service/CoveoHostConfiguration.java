@@ -48,6 +48,9 @@ public class CoveoHostConfiguration {
     @Property(name = "agentId", label = "Agent ID", value = "coveo-index-agent", description = "Agent ID of the created Coveo Index Agent")
     public static final String PROPERTY_AGENT_ID = "agentId";
 
+    @Property(name = "apiKey", label = "API Key", value = "api-key", description = "API key with the privilege to impersonate users")
+    public static final String PROPERTY_API_KEY = "apiKey";
+
     @Getter
     protected String organizationId;
 
@@ -63,6 +66,9 @@ public class CoveoHostConfiguration {
     @Getter
     protected String agentId;
 
+    @Getter
+    protected String apiKey;
+
     protected ComponentContext context;
 
     @Activate
@@ -73,6 +79,7 @@ public class CoveoHostConfiguration {
         this.accessToken = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ACCESS_TOKEN), null);
         this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV), CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
         this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
+        this.apiKey = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_API_KEY), null);
     }
 
 }
