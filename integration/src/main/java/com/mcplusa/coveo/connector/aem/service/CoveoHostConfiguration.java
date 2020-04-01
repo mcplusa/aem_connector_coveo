@@ -51,6 +51,12 @@ public class CoveoHostConfiguration {
     @Property(name = "apiKey", label = "API Key", value = "api-key", description = "API key with the privilege to impersonate users")
     public static final String PROPERTY_API_KEY = "apiKey";
 
+    @Property(name = "userIdentityProvider", label = "Users Identity Provider", value = "user-identity-provider", description = "Identity Provider for Users")
+    public static final String PROPERTY_USER_IDENTITY_PROVIDER = "userIdentityProvider";
+
+    @Property(name = "groupIdentityProvider", label = "Groups Identity Provider", value = "group-identity-provider", description = "Identity Provider for Groups")
+    public static final String PROPERTY_GROUP_IDENTITY_PROVIDER = "groupIdentityProvider";
+
     @Getter
     protected String organizationId;
 
@@ -69,6 +75,12 @@ public class CoveoHostConfiguration {
     @Getter
     protected String apiKey;
 
+    @Getter
+    protected String userIdentityProvider;
+
+    @Getter
+    protected String groupIdentityProvider;
+
     protected ComponentContext context;
 
     @Activate
@@ -80,6 +92,8 @@ public class CoveoHostConfiguration {
         this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV), CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
         this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
         this.apiKey = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_API_KEY), null);
+        this.userIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
+        this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
     }
 
 }

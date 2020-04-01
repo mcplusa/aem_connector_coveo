@@ -25,8 +25,12 @@ The account should have access to:
 
  - Organization ID
  - Source ID
- - Access Token _(API Token)_
+ - Access Token _(Source API Token)_
  - Environment (production, hipaa, etc.)
+
+### Generate an Impersonation API Key
+
+To generate the Search Token is necessary an API key with the privilege to impersonate users. See [Adding and Managing API Keys](https://docs.coveo.com/en/1718/cloud-v2-administrators/adding-and-managing-api-keys).
 
 ### Build
 
@@ -57,9 +61,20 @@ cd ./integration
 mvn sling:install -Dsling.url=http://localhost:4502
 ```
 
-### Setup Replication Agent
+### Setup Coveo Povider
 
-After a successful installation, visit the [System Configuration](http://localhost:4502/system/console/configMgr) and setup a `Coveo Provider`, you will have the Agent Id after creating a Replication Agent.
+After a successful installation, visit the [System Configuration](http://localhost:4502/system/console/configMgr) and setup a `Coveo Provider`.
+
+ - Organization ID
+ - Source ID
+ - Access Token _(Source API Token)_
+ - Environment (production, hipaa, etc.)
+ - Agent ID _(You will have this value in [Setup Replication Agent](#setup-replication-agent) step)_
+ - Impersonation API Key _(from the [Generate an Impersonation API Key](#generate-an-impersonation-api-key) section)_
+ - Users Identity Provider _Identity Provider used for User permissions_
+ - Groups Identity Provider _Identity Provider used for Groups permissions_
+
+### Setup Replication Agent
 
 The next step is to [setup a Replication Agent](http://localhost:4502/miscadmin#/etc/replication/agents.author) in `/etc/replication/agents.author` (The name of the created Agent will be the Agent Id needed in the the `Coveo Provider`. The recommended Title is `Coveo Index Agent` since it will generate the default agent id). To enable the Agent, open the Edit mode and check the Enabled box. You can also configure the desired log-level.
 
