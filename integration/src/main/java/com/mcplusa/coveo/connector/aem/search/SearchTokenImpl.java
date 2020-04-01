@@ -96,7 +96,7 @@ public class SearchTokenImpl implements SearchToken {
     ResourceResolver resourceResolver = resolverFactory.getThreadResourceResolver();
     Session session = resourceResolver.adaptTo(Session.class);
 
-    userIds.add(new UserId(session.getUserID(), "Email Security Provider", "User"));
+    userIds.add(new UserId(session.getUserID(), coveoConfig.getUserIdentityProvider(), "User"));
 
     UserManager userManager = resourceResolver.adaptTo(UserManager.class);
     Authorizable auth = userManager.getAuthorizable(session.getUserID());
@@ -105,7 +105,7 @@ public class SearchTokenImpl implements SearchToken {
 
     for (Iterator<Group> i = groups; groups.hasNext();) {
       String groupName = i.next().getPrincipal().getName();
-      userIds.add(new UserId(groupName, "Group Security Provider", "Group"));
+      userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "Group"));
     }
 
     return userIds;
