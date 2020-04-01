@@ -43,8 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.naming.ConfigurationException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
