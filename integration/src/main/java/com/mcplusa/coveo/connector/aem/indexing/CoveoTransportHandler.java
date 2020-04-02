@@ -324,11 +324,13 @@ public class CoveoTransportHandler implements TransportHandler {
       if (acl != null) {
         for (Permission p : acl) {
           IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
+          String identityProvider = p.isGroup() ? this.coveoService.getGroupIdentityProvider()
+              : this.coveoService.getUserIdentityProvider();
 
           if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
-            psm.addAllowedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+            psm.addAllowedPermission(new IdentityModel(p.getPrincipalName(), identityType, identityProvider));
           } else {
-            psm.addDeniedPermission(new IdentityModel(identityType, p.getPrincipalName()));
+            psm.addDeniedPermission(new IdentityModel(p.getPrincipalName(), identityType, identityProvider));
           }
         }
       }

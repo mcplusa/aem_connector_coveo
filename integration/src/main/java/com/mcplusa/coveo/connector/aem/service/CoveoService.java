@@ -33,11 +33,19 @@ public class CoveoService {
     @Getter
     private CoveoFactory factory;
 
+    @Getter
+    protected String userIdentityProvider;
+
+    @Getter
+    protected String groupIdentityProvider;
+
     @Activate
     public void activate(ComponentContext context) {
         CoveoEnvironment environment = CoveoEnvironment.valueOf(hostConfiguration.getEnvironment());
         factory = new CoveoFactory(environment);
         client = factory.newPushClient(hostConfiguration.getAccessToken(), hostConfiguration.getOrganizationId(), hostConfiguration.getSourceId());
+        userIdentityProvider = hostConfiguration.getUserIdentityProvider();
+        groupIdentityProvider = hostConfiguration.getGroupIdentityProvider();
     }
 
     @Deactivate

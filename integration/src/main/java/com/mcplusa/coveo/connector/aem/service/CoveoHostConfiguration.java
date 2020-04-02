@@ -48,6 +48,12 @@ public class CoveoHostConfiguration {
     @Property(name = "agentId", label = "Agent ID", value = "coveo-index-agent", description = "Agent ID of the created Coveo Index Agent")
     public static final String PROPERTY_AGENT_ID = "agentId";
 
+    @Property(name = "userIdentityProvider", label = "Users Identity Provider", value = "user-identity-provider", description = "Identity Provider for Users")
+    public static final String PROPERTY_USER_IDENTITY_PROVIDER = "userIdentityProvider";
+
+    @Property(name = "groupIdentityProvider", label = "Groups Identity Provider", value = "group-identity-provider", description = "Identity Provider for Groups")
+    public static final String PROPERTY_GROUP_IDENTITY_PROVIDER = "groupIdentityProvider";
+
     @Getter
     protected String organizationId;
 
@@ -63,6 +69,12 @@ public class CoveoHostConfiguration {
     @Getter
     protected String agentId;
 
+    @Getter
+    protected String userIdentityProvider;
+
+    @Getter
+    protected String groupIdentityProvider;
+
     protected ComponentContext context;
 
     @Activate
@@ -73,6 +85,8 @@ public class CoveoHostConfiguration {
         this.accessToken = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ACCESS_TOKEN), null);
         this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV), CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
         this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
+        this.userIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
+        this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
     }
 
 }
