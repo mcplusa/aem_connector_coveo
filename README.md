@@ -28,6 +28,10 @@ The account should have access to:
  - Access Token _(Source API Token)_
  - Environment (production, hipaa, etc.)
 
+### Generate an Impersonation API Key
+
+To generate the Search Token is necessary an API key with the privilege to impersonate users. See [Adding and Managing API Keys](https://docs.coveo.com/en/1718/cloud-v2-administrators/adding-and-managing-api-keys).
+
 ### Build
 
 To build the project, first is needed to build the [coveo-sdk-osgi](#repo) client.
@@ -66,6 +70,7 @@ After a successful installation, visit the [System Configuration](http://localho
  - Access Token _(Source API Token)_
  - Environment (production, hipaa, etc.)
  - Agent ID _(You will have this value in [Setup Replication Agent](#setup-replication-agent) step)_
+ - Impersonation API Key _(from the [Generate an Impersonation API Key](#generate-an-impersonation-api-key) section)_
  - Users Identity Provider _Identity Provider used for User permissions_
  - Groups Identity Provider _Identity Provider used for Groups permissions_
 
