@@ -326,7 +326,7 @@ public class CoveoTransportHandler implements TransportHandler {
       }.getType();
       List<NodePermissionLevel> acl = new Gson().fromJson(aclJson, listType);
       if (acl != null) {
-        List<NodePermissionLevel> aclOrdered = acl.stream().sorted((a, b) -> b.getNodeLevel() - a.getNodeLevel())
+        List<NodePermissionLevel> aclOrdered = acl.stream().sorted((a, b) -> a.getNodeLevel() - b.getNodeLevel())
             .collect(Collectors.toList());
         for (NodePermissionLevel nodePermission : aclOrdered) {
           PermissionLevelsModel permissionLevel = new PermissionLevelsModel(
