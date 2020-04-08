@@ -29,6 +29,8 @@ import com.mcplusa.coveo.sdk.pushapi.model.Document;
 import com.mcplusa.coveo.sdk.pushapi.model.FileContainerResponse;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityModel;
 import com.mcplusa.coveo.sdk.pushapi.model.IdentityType;
+import com.mcplusa.coveo.sdk.pushapi.model.PermissionLevelsModel;
+import com.mcplusa.coveo.sdk.pushapi.model.PermissionModel;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionsSetsModel;
 import com.mcplusa.coveo.sdk.pushapi.model.PushAPIStatus;
 
@@ -37,11 +39,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -315,28 +319,45 @@ public class CoveoTransportHandler implements TransportHandler {
     }
 
     // Implement permission
-    PermissionsSetsModel psm = new PermissionsSetsModel();
+    List<PermissionModel> permissions = new ArrayList<>();
     String aclJson = indexEntry.getContent("acl", String.class);
     if (aclJson != null) {
-      Type listType = new TypeToken<List<Permission>>() {
+      Type listType = new TypeToken<List<NodePermissionLevel>>() {
       }.getType();
-      List<Permission> acl = new Gson().fromJson(aclJson, listType);
+      List<NodePermissionLevel> acl = new Gson().fromJson(aclJson, listType);
       if (acl != null) {
-        for (Permission p : acl) {
-          IdentityType identityType = p.isGroup() ? IdentityType.GROUP : IdentityType.USER;
-          String identityProvider = p.isGroup() ? this.coveoService.getGroupIdentityProvider()
-              : this.coveoService.getUserIdentityProvider();
+        List<NodePermissionLevel> aclOrdered = acl.stream().sorted((a, b) -> a.getNodeLevel() - b.getNodeLevel())
+            .collect(Collectors.toList());
+        for (NodePermissionLevel nodePermission : aclOrdered) {
+          PermissionLevelsModel permissionLevel = new PermissionLevelsModel(
+              "Permission Level " + (nodePermission.getNodeLevel() + 1));
 
-          if (p.getType() == Permission.PERMISSION_TYPE.ALLOW) {
-            psm.addAllowedPermission(new IdentityModel(p.getPrincipalName(), identityType, identityProvider));
-          } else {
-            psm.addDeniedPermission(new IdentityModel(p.getPrincipalName(), identityType, identityProvider));
+          PermissionsSetsModel psm = new PermissionsSetsModel();
+          for (Permission permission : nodePermission.getPermissions()) {
+            IdentityType identityType = permission.isGroup() ? IdentityType.GROUP : IdentityType.USER;
+            String identityProvider = permission.isGroup() ? this.coveoService.getGroupIdentityProvider()
+                : this.coveoService.getUserIdentityProvider();
+
+            if (permission.getType() == Permission.PERMISSION_TYPE.ALLOW) {
+              psm.addAllowedPermission(
+                  new IdentityModel(permission.getPrincipalName(), identityType, identityProvider));
+            } else {
+              psm.addDeniedPermission(new IdentityModel(permission.getPrincipalName(), identityType, identityProvider));
+            }
           }
+
+          psm.setAllowAnonymous(acl == null || acl.isEmpty());
+
+          permissionLevel.addPermissionSet(psm);
+          permissions.add(permissionLevel);
         }
       }
 
-      psm.setAllowAnonymous(acl == null || acl.isEmpty());
+      doc.setPermissions(permissions);
 
+    } else {
+      PermissionsSetsModel psm = new PermissionsSetsModel();
+      psm.setAllowAnonymous(true);
       doc.setPermissions(Arrays.asList(psm));
     }
 

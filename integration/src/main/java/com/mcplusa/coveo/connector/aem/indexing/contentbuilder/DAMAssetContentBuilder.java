@@ -1,14 +1,14 @@
 package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
@@ -19,6 +19,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
+import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
@@ -156,20 +157,34 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
 
                         // Retrieve ACLs from policy
                         try {
+                            List<NodePermissionLevel> permissionLevels = new ArrayList<>();
                             ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
                             Session adminSession = resourceResolver.adaptTo(Session.class);
                             UserManager userManager = resourceResolver.adaptTo(UserManager.class);
 
                             Node node = adminSession.getNode(path);
+                            int nodeLevel = 0;
 
-                            JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
-                            if (policy != null) {
-                                List<Permission> acls = getACLs(policy, userManager);
-                                Type listType = new TypeToken<List<Permission>>() {
-                                }.getType();
-                                String aclJson = new Gson().toJson(acls, listType);
-                                ret.addContent("acl", aclJson);
+                            while (node != null) {
+                                JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                                if (policy != null) {
+                                    List<Permission> acls = getACLs(policy, userManager);
+                                    permissionLevels.add(new NodePermissionLevel(nodeLevel, acls));
+                                    nodeLevel++;
+                                }
+
+                                try {
+                                    node = node.getParent();
+                                } catch (ItemNotFoundException e) {
+                                    node = null;
+                                }
                             }
+
+                            Type listType = new TypeToken<List<NodePermissionLevel>>() {
+                            }.getType();
+                            String aclJson = new Gson().toJson(permissionLevels, listType);
+
+                            ret.addContent("acl", aclJson);
                         } catch (Exception ex) {
                             LOG.error("error policy", ex);
                         }
