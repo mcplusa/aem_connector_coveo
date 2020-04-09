@@ -313,7 +313,7 @@ public class CoveoTransportHandler implements TransportHandler {
     }
 
     String fileId = indexEntry.getContent("fileId", String.class);
-    if (fileId != null) {
+    if (StringUtils.isNotEmpty(fileId)) {
       doc.setCompressionType(CompressionType.UNCOMPRESSED);
       doc.addMetadata("compressedBinaryDataFileId", fileId, String.class);
     }
