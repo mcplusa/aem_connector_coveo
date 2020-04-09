@@ -28,6 +28,7 @@ import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
 import com.mcplusa.coveo.sdk.pushapi.model.FileContainerResponse;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
@@ -126,13 +127,17 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                             ret.addContent("content", content);
                         }
 
-                        ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
+                        if (StringUtils.isNotEmpty(MimeTypes.getType(asset.getMimeType()))) {
+                            ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
+                        }
 
-                        if (this.<String>getLastValue(res.getValueMap(), "jcr:createdBy") != null)
+                        if (this.<String>getLastValue(res.getValueMap(), "jcr:createdBy") != null) {
                             ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                        }
 
-                        if (this.<Long>getLastValue(res.getValueMap(), "jcr:created") != null)
+                        if (this.<Long>getLastValue(res.getValueMap(), "jcr:created") != null) {
                             ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+                        }
 
                         ret.addContent("lastmodified", asset.getLastModified());
                         ret.addContent("previewUrl", documentId);
@@ -140,19 +145,22 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                         if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
                             Long videoDuration = this.<Long>getLastValue(allProperties, "videoDuration");
 
-                            if (videoDuration != null)
+                            if (videoDuration != null) {
                                 ret.addContent("duration", videoDuration);
+                            }
                         }
 
                         if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
                             Long width = this.<Long>getLastValue(allProperties, "tiff:ImageWidth");
                             Long height = this.<Long>getLastValue(allProperties, "tiff:ImageLength");
 
-                            if (width != null)
+                            if (width != null) {
                                 ret.addContent("width", width);
+                            }
 
-                            if (height != null)
+                            if (height != null) {
                                 ret.addContent("height", height);
+                            }
                         }
 
                         // Retrieve ACLs from policy

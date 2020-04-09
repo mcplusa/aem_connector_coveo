@@ -301,7 +301,7 @@ public class CoveoTransportHandler implements TransportHandler {
       doc.setFileExtension(extension.get());
     }
 
-    if (indexEntry.getContent("documenttype", String.class) != null) {
+    if (StringUtils.isNotEmpty(indexEntry.getContent("documenttype", String.class))) {
       doc.addMetadata("documenttype", indexEntry.getContent("documenttype", String.class), String.class);
       doc.addMetadata("filetype", indexEntry.getContent("documenttype", String.class), String.class);
     }
@@ -313,9 +313,9 @@ public class CoveoTransportHandler implements TransportHandler {
     }
 
     String fileId = indexEntry.getContent("fileId", String.class);
-    if (fileId != null) {
+    if (StringUtils.isNotEmpty(fileId)) {
       doc.setCompressionType(CompressionType.UNCOMPRESSED);
-      doc.addMetadata("compressedBinaryDataFileId", data, String.class);
+      doc.addMetadata("compressedBinaryDataFileId", fileId, String.class);
     }
 
     // Implement permission
