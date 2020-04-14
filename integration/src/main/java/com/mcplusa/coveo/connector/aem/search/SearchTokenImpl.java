@@ -106,6 +106,7 @@ public class SearchTokenImpl implements SearchToken {
     for (Iterator<Group> i = groups; groups.hasNext();) {
       String groupName = i.next().getPrincipal().getName();
       userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "Group"));
+      userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "VirtualGroup"));
     }
 
     return userIds;
