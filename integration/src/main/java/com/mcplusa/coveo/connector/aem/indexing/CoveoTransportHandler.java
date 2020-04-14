@@ -334,7 +334,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
           PermissionsSetsModel psm = new PermissionsSetsModel();
           for (Permission permission : nodePermission.getPermissions()) {
-            IdentityType identityType = permission.isGroup() ? IdentityType.GROUP : IdentityType.USER;
+            IdentityType identityType = permission.isGroup() ? IdentityType.VIRTUAL_GROUP : IdentityType.USER;
             String identityProvider = permission.isGroup() ? this.coveoService.getGroupIdentityProvider()
                 : this.coveoService.getUserIdentityProvider();
 
