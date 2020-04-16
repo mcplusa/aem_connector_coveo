@@ -1,5 +1,7 @@
 package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
+import com.day.cq.tagging.Tag;
+import com.day.cq.tagging.TagManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -38,6 +40,8 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractCoveoContentBuilder.class);
 
+    private TagManager tagManager;
+    
     private BundleContext context;
 
     @Activate
@@ -128,6 +132,34 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return ret;
     }
 
+    protected Object resolveTags(Object value) {
+        try {
+          if (value != null) {
+            if (value instanceof List) {
+            List<String> sList = new ArrayList<>();
+              for (String el : (List<String>) value) {
+                Tag tag = tagManager.resolve(el);
+                if (tag != null) {
+                  sList.add(tag.getTitlePath());
+                }
+              }
+
+              return sList;
+              
+            } else if (value instanceof String) {
+              Tag tag = tagManager.resolve((String) value);
+              if (tag != null) {
+                return tag.getTitlePath();
+              }
+            }
+          }
+        } catch (Exception e) {
+          LOG.error("Error tags", e.getMessage());
+        }
+    
+        return value;
+    }
+
     private Object[] mergeProperties(Object obj1, Object obj2) {
         List<Object> tmp = new ArrayList<>();
         addProperty(tmp, obj1);
@@ -175,12 +207,12 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                 if (el.isJsonArray()) {
                     props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
                 } else {
-                    props.put(key, el.toString());
+                    props.put(key, el.getAsString());
                 }
             }
         });
 
-        return props;
+        return props.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> resolveTags(e.getValue())));
     }
 
     private boolean matchProperty(String key, String[] properties) {
@@ -282,5 +314,9 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         } catch (ClassCastException ex) {
             return null;
         }
+    }
+
+    protected void setTagManager(TagManager tagManager) {
+        this.tagManager = tagManager;
     }
 }
