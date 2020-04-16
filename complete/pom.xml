@@ -7,13 +7,13 @@
   <parent>
     <groupId>com.mcplusa.coveo</groupId>
     <artifactId>coveo-parent</artifactId>
-    <version>2020.02-SNAPSHOT-04092020</version>
+    <version>2020.02-SNAPSHOT-04142020</version>
     <relativePath>../parent/pom.xml</relativePath>
   </parent>
 
   <groupId>com.mcplusa.coveo</groupId>
   <artifactId>coveo-aem-complete</artifactId>
-  <version>2020.02-SNAPSHOT-04092020</version>
+  <version>2020.02-SNAPSHOT-04142020</version>
   <packaging>content-package</packaging>
 
   <name>Coveo AEM Integration - Complete</name>
