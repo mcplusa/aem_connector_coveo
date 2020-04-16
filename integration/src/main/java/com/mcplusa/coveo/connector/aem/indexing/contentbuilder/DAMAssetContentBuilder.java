@@ -15,6 +15,7 @@ import javax.jcr.Session;
 import com.day.cq.commons.Externalizer;
 import com.day.cq.dam.api.Asset;
 import com.day.cq.dam.api.Rendition;
+import com.day.cq.tagging.TagManager;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -67,6 +68,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
         if (ArrayUtils.isNotEmpty(indexRules)) {
             Externalizer externalizer = resolver.adaptTo(Externalizer.class);
             Resource res = resolver.getResource(path);
+            setTagManager(resolver.adaptTo(TagManager.class));
             if (res != null) {
                 Asset asset = res.adaptTo(Asset.class);
                 if (asset != null) {
