@@ -52,7 +52,7 @@ mvn wcmio-content-package:install
 _In case your AEM instance is not `http://localhost:4502/crx/packmgr/service`, you can set a custom service URL passing the parameter `serviceURL`, eg: `mvn wcmio-content-package:install -Dvault.serviceURL=http://my-custom-aem-domain.com/crx/packmgr/service`. 
 For more information about available [parameters](https://wcm.io/tooling/maven/plugins/wcmio-content-package-maven-plugin/install-mojo.html)._
 
-## Install Replication Agent
+### Install Replication Agent
 
 The [integration](/integration) module provides a Replication Agent that can be used to index AEM Pages / DAM Assets on activation.
 
@@ -118,7 +118,7 @@ Coveo only allows only allow lowercase letters, numbers, and underscores, the or
 | jcr:created      | createddate         | Created Date       |
 
 
-## Install Search
+### Install Search
 
 The [search](/search) module provides a Coveo Search Token page that can be used to implement the Coveo Search UI.
 
