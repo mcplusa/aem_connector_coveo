@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cpvep Search Token</title>
+  <title>Coveo Search Token</title>
   <script>
     document.addEventListener("DOMContentLoaded", function (event) {
       getSearchToken();
