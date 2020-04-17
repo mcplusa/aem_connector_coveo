@@ -5,6 +5,6 @@
     "allowedPaths": "/content",
     "jcr:content": {
         "jcr:primaryType": "cq:PageContent",
-        "sling:resourceType": "/apps/mcplusa_coveo/components/page/searchToken"
+        "sling:resourceType": "/apps/mcplusacoveosearch/components/page/searchToken"
     }
 }
