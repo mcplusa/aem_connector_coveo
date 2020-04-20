@@ -113,6 +113,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                             int nodeLevel = 0;
 
                             while (node != null) {
+                                LOG.info("DOC: {}", toJson(node));
                                 JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
                                 if (policy != null) {
                                     List<Permission> acls = getACLs(policy, userManager);
