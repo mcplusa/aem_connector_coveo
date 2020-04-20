@@ -11,9 +11,11 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.jcr.Node;
@@ -202,7 +204,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
      * policy can be found.
      */
     protected List<Permission> getACLs(JsonObject policy, UserManager userManager) {
-        List<Permission> acl = new ArrayList<>();
+        Set<Permission> acl = new HashSet<>();
 
         try {
             for (String key : policy.keySet()) {
@@ -225,7 +227,10 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
             LOG.error("error policy", ex);
         }
 
-        return acl;
+        List<Permission> aclList = new ArrayList<>();
+        aclList.addAll(acl);
+
+        return aclList;
     }
 
     private boolean hasPrivileges(JsonArray privileges) {
