@@ -117,6 +117,36 @@ Coveo only allows only allow lowercase letters, numbers, and underscores, the or
 | jcr:lastModified | date                | Last Modified Date |
 | jcr:created      | createddate         | Created Date       |
 
+
+### Install Search
+
+The [search](/search) module provides a Coveo Search Token page that can be used to implement the Coveo Search UI.
+
+```
+cd ./search
+mvn sling:install -Dsling.url=http://localhost:4502
+```
+
+### Setup Coveo Search Configuration
+
+After a successful installation, visit the [System Configuration](http://localhost:4502/system/console/configMgr) and setup a `Coveo Search Configuration`.
+
+ - Organization ID
+ - Environment (production, hipaa, etc.)
+ - Impersonation API Key _(from the [Generate an Impersonation API Key](#generate-an-impersonation-api-key) section)_
+ - Users Identity Provider _Identity Provider used for User permissions_
+ - Groups Identity Provider _Identity Provider used for Groups permissions_
+
+### Create the Search Page
+
+ - Go to the Website page at http://localhost:4502/siteadmin#/content.
+ - Select New Page.
+ - Specify the title of the page in the Title field.
+ - Specify the name of the page in the Name field.
+ - Select Coveo Search Token from the template list that appears.
+ - Open the new page that you created by double-clicking it in the right pane. The new page opens in a web browser.
+
+
 ## Maintainer
 
 * Francisco Pizarro / MC+A

@@ -3,7 +3,7 @@ package com.mcplusa.coveo.connector.aem.search;
 import com.google.gson.Gson;
 import com.mcplusa.coveo.connector.aem.search.model.SearchTokenPayload;
 import com.mcplusa.coveo.connector.aem.search.model.UserId;
-import com.mcplusa.coveo.connector.aem.service.CoveoHostConfiguration;
+import com.mcplusa.coveo.connector.aem.search.service.CoveoSearchConfiguration;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -44,7 +44,7 @@ public class SearchTokenImpl implements SearchToken {
   ResourceResolverFactory resolverFactory;
 
   @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
-  protected CoveoHostConfiguration coveoConfig;
+  protected CoveoSearchConfiguration coveoConfig;
 
   @Override
   public String getSearchToken() {
