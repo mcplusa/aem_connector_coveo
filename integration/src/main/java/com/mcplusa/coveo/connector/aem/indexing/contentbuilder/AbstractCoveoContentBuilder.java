@@ -135,31 +135,35 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return ret;
     }
 
-    protected Object resolveTags(Object value) {
-        try {
-          if (value != null) {
-            if (value instanceof List) {
-            List<String> sList = new ArrayList<>();
-              for (String el : (List<String>) value) {
-                Tag tag = tagManager.resolve(el);
-                if (tag != null) {
-                  sList.add(tag.getTitlePath());
-                }
-              }
-
-              return sList;
-              
-            } else if (value instanceof String) {
-              Tag tag = tagManager.resolve((String) value);
-              if (tag != null) {
-                return tag.getTitlePath();
-              }
-            }
-          }
-        } catch (Exception e) {
-          LOG.error("Error tags", e.getMessage());
+    private Object resolveTags(Object value) {
+        if (value == null) {
+            return value;
         }
-    
+
+        try {
+            if (value instanceof List) {
+                List<String> sList = new ArrayList<>();
+                for (String el : (List<String>) value) {
+                    Tag tag = tagManager.resolve(el);
+                    if (tag != null) {
+                        sList.add(tag.getTitlePath());
+                    }
+                }
+
+                if (sList.size() > 0) {
+                    return sList;
+                }
+
+            } else if (value instanceof String) {
+                Tag tag = tagManager.resolve((String) value);
+                if (tag != null) {
+                    return tag.getTitlePath();
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Error tags", e.getMessage());
+        }
+
         return value;
     }
 
