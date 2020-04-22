@@ -40,9 +40,6 @@ public class CoveoHostConfiguration {
   @Property(name = "agentId", label = "Agent ID", value = "coveo-index-agent", description = "Agent ID of the created Coveo Index Agent")
   public static final String PROPERTY_AGENT_ID = "agentId";
 
-  @Property(name = "apiKey", label = "API Key", value = "api-key", description = "API key with the privilege to impersonate users")
-  public static final String PROPERTY_API_KEY = "apiKey";
-
   @Property(name = "userIdentityProvider", label = "Users Identity Provider", value = "user-identity-provider", description = "Identity Provider for Users")
   public static final String PROPERTY_USER_IDENTITY_PROVIDER = "userIdentityProvider";
 
@@ -65,9 +62,6 @@ public class CoveoHostConfiguration {
   protected String agentId;
 
   @Getter
-  protected String apiKey;
-
-  @Getter
   protected String userIdentityProvider;
 
   @Getter
@@ -78,19 +72,12 @@ public class CoveoHostConfiguration {
   @Activate
   public void activate(ComponentContext context) {
     this.context = context;
-    this.organizationId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ORG_ID),
-        null);
-    this.sourceId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_SOURCE_ID),
-        null);
-    this.accessToken = PropertiesUtil
-        .toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ACCESS_TOKEN), null);
-    this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV),
-        CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
+    this.organizationId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ORG_ID), null);
+    this.sourceId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_SOURCE_ID), null);
+    this.accessToken = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ACCESS_TOKEN), null);
+    this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV), CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
     this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
-    this.apiKey = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_API_KEY), null);
-    this.userIdentityProvider = PropertiesUtil
-        .toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
-    this.groupIdentityProvider = PropertiesUtil
-        .toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
+    this.userIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
+    this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
   }
 }
