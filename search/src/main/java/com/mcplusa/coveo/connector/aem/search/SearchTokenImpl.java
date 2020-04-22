@@ -27,6 +27,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -95,18 +96,20 @@ public class SearchTokenImpl implements SearchToken {
 
     ResourceResolver resourceResolver = resolverFactory.getThreadResourceResolver();
     Session session = resourceResolver.adaptTo(Session.class);
+    UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+    User auth = (User)userManager.getAuthorizable(session.getUserID());
 
     userIds.add(new UserId(session.getUserID(), coveoConfig.getUserIdentityProvider(), "User"));
-
-    UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-    Authorizable auth = userManager.getAuthorizable(session.getUserID());
+    userIds.add(new UserId(session.getUserID(), coveoConfig.getAemIdentityProvider(), "User"));
+    userIds.add(new UserId(session.getUserID(), "Email Security Provider", "User"));
 
     Iterator<Group> groups = auth.memberOf();
 
-    for (Iterator<Group> i = groups; groups.hasNext();) {
-      String groupName = i.next().getPrincipal().getName();
+    while (groups.hasNext()) {
+      String groupName = groups.next().getPrincipal().getName();
       userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "Group"));
       userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "VirtualGroup"));
+      userIds.add(new UserId(groupName, coveoConfig.getAemIdentityProvider(), "VirtualGroup"));
     }
 
     return userIds;

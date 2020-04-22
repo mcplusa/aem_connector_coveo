@@ -62,6 +62,9 @@ public class CoveoSearchConfiguration {
   @Getter
   protected String groupIdentityProvider;
 
+  @Getter
+  protected String aemIdentityProvider;
+
   protected ComponentContext context;
 
   @Activate
@@ -72,5 +75,6 @@ public class CoveoSearchConfiguration {
     this.apiKey = PropertiesUtil.toString(context.getProperties().get(CoveoSearchConfiguration.PROPERTY_API_KEY), null);
     this.userIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoSearchConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
     this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoSearchConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
+    this.aemIdentityProvider = "aem-security-identity";
   }
 }
