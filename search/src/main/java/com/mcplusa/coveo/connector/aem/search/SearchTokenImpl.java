@@ -3,7 +3,7 @@ package com.mcplusa.coveo.connector.aem.search;
 import com.google.gson.Gson;
 import com.mcplusa.coveo.connector.aem.search.model.SearchTokenPayload;
 import com.mcplusa.coveo.connector.aem.search.model.UserId;
-import com.mcplusa.coveo.connector.aem.service.CoveoHostConfiguration;
+import com.mcplusa.coveo.connector.aem.search.service.CoveoSearchConfiguration;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -27,6 +27,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -44,7 +45,7 @@ public class SearchTokenImpl implements SearchToken {
   ResourceResolverFactory resolverFactory;
 
   @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
-  protected CoveoHostConfiguration coveoConfig;
+  protected CoveoSearchConfiguration coveoConfig;
 
   @Override
   public String getSearchToken() {
@@ -95,18 +96,20 @@ public class SearchTokenImpl implements SearchToken {
 
     ResourceResolver resourceResolver = resolverFactory.getThreadResourceResolver();
     Session session = resourceResolver.adaptTo(Session.class);
+    UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+    User auth = (User)userManager.getAuthorizable(session.getUserID());
 
     userIds.add(new UserId(session.getUserID(), coveoConfig.getUserIdentityProvider(), "User"));
-
-    UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-    Authorizable auth = userManager.getAuthorizable(session.getUserID());
+    userIds.add(new UserId(session.getUserID(), coveoConfig.getAemIdentityProvider(), "User"));
+    userIds.add(new UserId(session.getUserID(), "Email Security Provider", "User"));
 
     Iterator<Group> groups = auth.memberOf();
 
-    for (Iterator<Group> i = groups; groups.hasNext();) {
-      String groupName = i.next().getPrincipal().getName();
+    while (groups.hasNext()) {
+      String groupName = groups.next().getPrincipal().getName();
       userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "Group"));
       userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "VirtualGroup"));
+      userIds.add(new UserId(groupName, coveoConfig.getAemIdentityProvider(), "VirtualGroup"));
     }
 
     return userIds;
