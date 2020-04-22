@@ -1,6 +1,7 @@
 package com.mcplusa.coveo.connector.aem.service;
 
 import lombok.Getter;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -67,6 +68,9 @@ public class CoveoHostConfiguration {
   @Getter
   protected String groupIdentityProvider;
 
+  @Getter
+  protected String aemIdentityProvider;
+
   protected ComponentContext context;
 
   @Activate
@@ -79,5 +83,6 @@ public class CoveoHostConfiguration {
     this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
     this.userIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
     this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
+    this.aemIdentityProvider = "aem-security-identity";
   }
 }

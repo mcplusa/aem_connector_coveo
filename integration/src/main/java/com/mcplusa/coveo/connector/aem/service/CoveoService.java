@@ -94,9 +94,7 @@ public class CoveoService {
 
       CoveoResponse response = client.pushFileOnS3(is, fileContainer.getUploadUri());
       if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-        String provider = "aem-security-identity";
-
-        client.pushIdentitiesBatch(provider, fileContainer.getFileId());
+        client.pushIdentitiesBatch(config.getAemIdentityProvider(), fileContainer.getFileId());
       } else {
         throw new CoveoResponseException(response);
       }
