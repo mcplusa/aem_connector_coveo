@@ -13,9 +13,12 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.jcr.Node;
@@ -234,7 +237,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
      * policy can be found.
      */
     protected List<Permission> getACLs(JsonObject policy, UserManager userManager) {
-        List<Permission> acl = new ArrayList<>();
+        Set<Permission> acl = new HashSet<>();
 
         try {
             for (String key : policy.keySet()) {
@@ -243,55 +246,66 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                     String princ = rep.getAsJsonObject().get("rep:principalName").getAsString();
                     String type = rep.getAsJsonObject().get("jcr:primaryType").getAsString();
                     JsonArray priv = rep.getAsJsonObject().getAsJsonArray("rep:privileges");
-                    boolean isGroup = principalIsGroup(userManager, princ);
+                    Optional<Boolean> isGroup = principalIsGroup(userManager, princ);
 
-                    if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
-                        acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup));
-                    } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
-                        acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup));
+                    if (isGroup.isPresent()) {
+                        if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
+                            acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
+                        } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
+                            acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup.get()));
+                        }
                     }
                 }
             }
 
         } catch (Exception ex) {
-            LOG.error("error policy", ex);
+            LOG.error("Error getting ACLs", ex);
         }
 
-        return acl;
+        List<Permission> aclList = new ArrayList<>();
+        aclList.addAll(acl);
+
+        return aclList;
     }
 
     private boolean hasPrivileges(JsonArray privileges) {
         for (JsonElement priv : privileges) {
-            if (priv.getAsString().equals("jcr:read") || priv.getAsString().equals("jcr:all")) {
-                return true;
-            }
+            return priv.getAsString().equals("jcr:read") || priv.getAsString().equals("jcr:all");
         }
 
         return false;
     }
 
-    protected boolean principalIsGroup(UserManager userManager, String principalName) {
+    private Iterator<Authorizable> getAllAuthorizables(UserManager userManager) {
         try {
-            Iterator<Authorizable> authorizables = userManager.findAuthorizables(new Query() {
+            return userManager.findAuthorizables(new Query() {
                 public <T> void build(QueryBuilder<T> builder) {
+                    // Get All Authorizables
                 }
             });
+        } catch (RepositoryException ex) {
+            LOG.error("Error getting authorizables", ex);
+            return null;
+        }
+    }
 
+    protected Optional<Boolean> principalIsGroup(UserManager userManager, String principalName) {
+        try {
+            Iterator<Authorizable> authorizables = getAllAuthorizables(userManager);
             if (authorizables != null) {
                 for (Iterator iterator = authorizables; iterator.hasNext();) {
 
                     Authorizable auth = (Authorizable) iterator.next();
                     if (auth.getID().equals(principalName)) {
-                        return auth.isGroup();
+                        return Optional.of(auth.isGroup());
                     }
-
                 }
             }
         } catch (RepositoryException ex) {
-            LOG.error("Error getting principal", ex);
+            LOG.error("Error while checking principal", ex);
         }
 
-        return false;
+        return Optional.empty();
     }
 
     protected <T> T getLastValue(Map<String, Object> res, String key) {
