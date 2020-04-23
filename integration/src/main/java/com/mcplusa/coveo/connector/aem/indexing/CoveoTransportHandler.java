@@ -125,9 +125,7 @@ public class CoveoTransportHandler implements TransportHandler {
       } else {
         log.info(getClass().getSimpleName() + ": ---------------------------------------");
         if (tx.getContent() == ReplicationContent.VOID) {
-          String errorMsg = "No Replication Content provided";
-          LOG.warn(errorMsg);
-          return new ReplicationResult(true, 0, errorMsg + " for path " + tx.getAction().getPath());
+          return doVoid(tx);
         }
         switch (replicationType) {
           case ACTIVATE:
@@ -158,6 +156,27 @@ public class CoveoTransportHandler implements TransportHandler {
       log.error(getClass().getSimpleName() + ": Could not perform Indexing due to " + ioe.getLocalizedMessage());
       LOG.error("Could not perform Indexing", ioe);
       return new ReplicationResult(false, 0, ioe.getLocalizedMessage());
+    }
+  }
+
+  private ReplicationResult doVoid(ReplicationTransaction tx) {
+    ReplicationLog log = tx.getLog();
+    String errorMsg = "No Replication Content provided";
+    LOG.warn(errorMsg);
+
+    if (isLastEntryOfBatch()) {
+      CoveoResponse batchResponse = pushToFileContainer(log);
+      updateSourceStatus(PushAPIStatus.IDLE, log);
+
+      if (batchResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
+        return ReplicationResult.OK;
+      } else {
+        LOG.error("Could not push batch of documents: {}", batchResponse);
+        return new ReplicationResult(false, 0, REPLICATION_ERROR_MSG);
+      }
+
+    } else {
+      return new ReplicationResult(true, 0, errorMsg + " for path " + tx.getAction().getPath());
     }
   }
 
