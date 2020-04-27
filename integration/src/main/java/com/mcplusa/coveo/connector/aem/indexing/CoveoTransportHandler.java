@@ -80,6 +80,7 @@ public class CoveoTransportHandler implements TransportHandler {
   private static final Logger LOG = LoggerFactory.getLogger(CoveoTransportHandler.class);
   private static final String REPLICATION_ERROR_MSG = "Replication failed";
   private static final String AGENT_NOT_FOUND = "The Agent can not be found. Check that agentId is configured properly in the Coveo Provider settings.";
+  private static final String NO_REPLICATION_CONTENT = "No Replication Content provided";
 
   /**
    *
@@ -161,8 +162,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
   private ReplicationResult doVoid(ReplicationTransaction tx) {
     ReplicationLog log = tx.getLog();
-    String errorMsg = "No Replication Content provided";
-    LOG.warn(errorMsg);
+    LOG.warn(NO_REPLICATION_CONTENT);
 
     if (isLastEntryOfBatch()) {
       CoveoResponse batchResponse = pushToFileContainer(log);
@@ -176,7 +176,7 @@ public class CoveoTransportHandler implements TransportHandler {
       }
 
     } else {
-      return new ReplicationResult(true, 0, errorMsg + " for path " + tx.getAction().getPath());
+      return new ReplicationResult(true, 0, NO_REPLICATION_CONTENT + " for path " + tx.getAction().getPath());
     }
   }
 
@@ -266,7 +266,7 @@ public class CoveoTransportHandler implements TransportHandler {
   }
 
   /**
-   * Test Connection to Coveo
+   * Test Connection to Coveo.
    *
    * @param ctx        TransportContext
    * @param tx         ReplicationTransaction
