@@ -21,7 +21,8 @@ The account should have access to:
 
 ### Create a Push API Source
 
-[Create a Push Source](https://docs.coveo.com/en/94/cloud-v2-developers/creating-a-push-source) and include the creation of a API Key, values that are needed are the following:
+[Create a Push Source](https://docs.coveo.com/en/94/cloud-v2-developers/creating-a-push-source) and include the creation of a API Key, also, this API Key needs the following privileges [Security identity providers and Security identities](https://docs.coveo.com/en/1905/cloud-v2-administrators/managing-security-identities#required-privileges).
+The following values are needed:
 
  - Organization ID
  - Source ID
