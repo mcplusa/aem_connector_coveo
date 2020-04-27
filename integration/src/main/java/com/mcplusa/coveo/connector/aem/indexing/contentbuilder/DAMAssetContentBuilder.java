@@ -179,7 +179,9 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                                 JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
                                 if (policy != null) {
                                     List<Permission> acls = getACLs(policy, userManager);
-                                    permissionLevels.add(new NodePermissionLevel(nodeLevel, acls));
+                                    if (acls.size() > 0) {
+                                        permissionLevels.add(new NodePermissionLevel(nodeLevel, acls));
+                                    }
                                     nodeLevel++;
                                 }
 
