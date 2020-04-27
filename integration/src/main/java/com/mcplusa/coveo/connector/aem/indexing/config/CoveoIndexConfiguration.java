@@ -11,59 +11,60 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(metatype = true, immediate = true, configurationFactory = true,
-        label = CoveoIndexConfiguration.SERVICE_NAME, description = CoveoIndexConfiguration.SERVICE_DESCRIPTION)
+@Component(
+    metatype = true,
+    immediate = true,
+    configurationFactory = true,
+    label = CoveoIndexConfiguration.SERVICE_NAME,
+    description = CoveoIndexConfiguration.SERVICE_DESCRIPTION)
 @Service(CoveoIndexConfiguration.class)
 @Properties({
-    @Property(name = "webconsole.configurationFactory.nameHint", value = "Primary Type: {primaryType}")
+    @Property(
+      name = "webconsole.configurationFactory.nameHint",
+      value = "Primary Type: {primaryType}")
 })
 public class CoveoIndexConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CoveoIndexConfiguration.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CoveoIndexConfiguration.class);
 
-    /**
-     * Filter Property for jcr:primary Type
-     */
-    public static final String PRIMARY_TYPE = JcrConstants.JCR_PRIMARYTYPE;
+  /** Filter Property for jcr:primary Type. */
+  public static final String PRIMARY_TYPE = JcrConstants.JCR_PRIMARYTYPE;
 
-    public static final String SERVICE_NAME = "Coveo Index Configuration";
-    public static final String SERVICE_DESCRIPTION = "Service to configure the Coveo Index";
+  public static final String SERVICE_NAME = "Coveo Index Configuration";
+  public static final String SERVICE_DESCRIPTION = "Service to configure the Coveo Index";
 
-    @Property(name = "primaryType",
-            label = "Primary Type",
-            description = "Primary Type for which this configuration is responsible. E.g. cq:page or dam:Asset")
-    public static final String PROPERTY_BASE_PATH = "primaryType";
+  @Property(
+      name = "primaryType",
+      label = "Primary Type",
+      description =
+          "Primary Type for which this configuration is responsible. E.g. cq:Page or dam:Asset")
+  public static final String PROPERTY_BASE_PATH = "primaryType";
 
-    //TODO: add support for mapping hints (e.g. jcr:title;keyword
-    @Property(name = "indexRules",
-            cardinality = Integer.MAX_VALUE,
-            label = "Index Rules",
-            description = "List with the names of all properties that should be indexed."
-    )
-    public static final String PROPERTY_INDEX_RULES = "indexRules";
+  @Property(
+      name = "indexRules",
+      cardinality = Integer.MAX_VALUE,
+      label = "Index Rules",
+      description = "List with the names of all properties that should be indexed.")
+  public static final String PROPERTY_INDEX_RULES = "indexRules";
 
-    @Property(name = "reindex",
-            label = "Reindex",
-            boolValue = false,
-            description = "If enabled, a reindexing will start on save")
-    public static final String PROPERTY_REINDEX = "reindex";
+  protected String[] indexRules;
 
-    protected String[] indexRules;
+  protected ComponentContext context;
 
-    protected ComponentContext context;
+  @Activate
+  public void activate(ComponentContext context) {
+    this.context = context;
+    this.indexRules =
+        PropertiesUtil.toStringArray(
+            context.getProperties().get(CoveoIndexConfiguration.PROPERTY_INDEX_RULES));
+  }
 
-    @Activate
-    public void activate(ComponentContext context) {
-        this.context = context;
-        this.indexRules = PropertiesUtil.toStringArray(context.getProperties().get(CoveoIndexConfiguration.PROPERTY_INDEX_RULES));
-    }
-
-    /**
-     *
-     * @return array of index rules
-     */
-    public String[] getIndexRules() {
-        return indexRules;
-    }
-
+  /**
+   * Get method that returns all index rules.
+   *
+   * @return array of index rules
+   */
+  public String[] getIndexRules() {
+    return indexRules;
+  }
 }
