@@ -2,6 +2,8 @@ package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
 import com.day.cq.commons.Externalizer;
 import com.day.cq.contentsync.handler.util.RequestResponseFactory;
+import com.day.cq.tagging.Tag;
+import com.day.cq.tagging.TagManager;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
 import com.google.common.reflect.TypeToken;
@@ -66,6 +68,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
         if (ArrayUtils.isNotEmpty(indexRules)) {
             Externalizer externalizer = resolver.adaptTo(Externalizer.class);
             PageManager pageManager = resolver.adaptTo(PageManager.class);
+            setTagManager(resolver.adaptTo(TagManager.class));
             if (pageManager != null) {
                 Page page = pageManager.getPage(path);
                 if (page != null) {
