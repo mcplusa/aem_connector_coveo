@@ -2,18 +2,42 @@
 
 This repository provides an integration of Coveo into AEM.
 
+## Table Of Content
+
+- [Getting Started](#getting-started)
+  * [Preflight](#preflight)
+    + [Account Requirements](#account-requirements)
+  * [Create a Push API Source](#create-a-push-api-source)
+  * [Create Security Identity](#create-security-identity)
+  * [Generate an Impersonation API Key](#generate-an-impersonation-api-key)
+  * [Build Project](#build-project)
+  * [Install Required Dependencies](#install-required-dependencies)
+  * [Install Replication Agent](#install-replication-agent)
+  * [Setup Coveo Povider](#setup-coveo-povider)
+  * [Setup Replication Agent](#setup-replication-agent)
+  * [Setup Externalizer (Day CQ Link Externalizer)](#setup-externalizer--day-cq-link-externalizer-)
+  * [Setup Login Admin Whitelist](#setup-login-admin-whitelist)
+  * [Index custom fields](#index-custom-fields)
+  * [Default Fields](#default-fields)
+    + [cq:Page](#cq-page)
+    + [dam:Asset](#dam-asset)
+  * [Install Search module](#install-search-module)
+  * [Setup Coveo Search Configuration](#setup-coveo-search-configuration)
+  * [Create the Search Page](#create-the-search-page)
+- [Maintainer](#maintainer)
+- [License](#license)
+
 ## Getting Started
 
 ### Preflight
 
-#### Account Requirements:
+#### Account Requirements
 
  1. Access to Miscadmin (AEM Tools) (`http://<host>:<port>/miscadmin`):
 
   - The account should have access to install/modify a Replication Agent (`http://<host>:<port>/miscadmin#/etc/replication/agents.author`)
 
-2. Access to AEM Web Console (`http://<host>:<port>/system/console/configMgr`)
-The account should have access to:
+ 2. Access to AEM Web Console (`http://<host>:<port>/system/console/configMgr`) The account should have access to:
 
   - Enable Apache Sling Login Admin Whitelist
 
@@ -29,11 +53,39 @@ The following values are needed:
  - Access Token _(Source API Token)_
  - Environment (production, hipaa, etc.)
 
+
+### Create Security Identity
+
+Information about how to create a security identity can be found in the document [Creating a Security Identity Provider for a Secured Push Source](https://docs.coveo.com/en/85/cloud-v2-developers/creating-a-security-identity-provider-for-a-secured-push-source) and can be easily done using the [Coveo swagger API](https://platform.cloud.coveo.com/docs?api=SecurityCache#!/Security32Providers/rest_organizations_paramId_securityproviders_paramId_put).
+
+ - securityProviderId must be: `aem-security-provider`
+ - The payload must be:
+```
+{
+  "name" : "aem-security-provider",
+  "nodeRequired": false,
+  "type": "EXPANDED",
+  "referencedBy": [
+    {
+      "id": "<MyPushSourceId>",
+      "type": "SOURCE"
+    }
+  ],
+  "cascadingSecurityProviders": {
+      "EmailSecurityProvider": {
+        "name": "Email Security Provider",
+        "type": "EMAIL"
+    }
+  }
+}
+```
+_Make sure to modify `<MyPushSourceId>` with the Secured Push Source created previously._
+
 ### Generate an Impersonation API Key
 
 To generate the Search Token is necessary an API key with the privilege to impersonate users. See [Adding and Managing API Keys](https://docs.coveo.com/en/1718/cloud-v2-administrators/adding-and-managing-api-keys).
 
-### Build
+### Build Project
 
 To build the project, first is needed to build the [coveo-sdk-osgi](#repo) client.
 Then, build the project using the following command:
@@ -72,8 +124,8 @@ After a successful installation, visit the [System Configuration](http://localho
  - Environment (production, hipaa, etc.)
  - Agent ID _(You will have this value in [Setup Replication Agent](#setup-replication-agent) step)_
  - Impersonation API Key _(from the [Generate an Impersonation API Key](#generate-an-impersonation-api-key) section)_
- - Users Identity Provider _Identity Provider used for User permissions_
- - Groups Identity Provider _Identity Provider used for Groups permissions_
+ - Users Identity Provider _Identity Provider used for User permissions, the value should be "aem-security-provider"_
+ - Groups Identity Provider _Identity Provider used for Groups permissions, the value should be "aem-security-provider"_
 
 ### Setup Replication Agent
 
@@ -119,7 +171,7 @@ Coveo only allows only allow lowercase letters, numbers, and underscores, the or
 | jcr:created      | createddate         | Created Date       |
 
 
-### Install Search
+### Install Search module
 
 The [search](/search) module provides a Coveo Search Token page that can be used to implement the Coveo Search UI.
 
