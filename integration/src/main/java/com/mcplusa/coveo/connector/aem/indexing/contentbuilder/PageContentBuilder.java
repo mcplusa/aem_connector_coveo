@@ -2,7 +2,6 @@ package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
 import com.day.cq.commons.Externalizer;
 import com.day.cq.contentsync.handler.util.RequestResponseFactory;
-import com.day.cq.tagging.Tag;
 import com.day.cq.tagging.TagManager;
 import com.day.cq.wcm.api.Page;
 import com.day.cq.wcm.api.PageManager;
@@ -14,22 +13,24 @@ import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
 import java.lang.reflect.Type;
-import javax.annotation.Nonnull;
-import javax.jcr.Session;
 import java.util.List;
 import java.util.Map;
-
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashSet;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Base64;
+
 import javax.annotation.Nonnull;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import javax.jcr.Session;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
@@ -116,12 +117,28 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                             int nodeLevel = 0;
 
                             while (node != null) {
-                                JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                                Set<Permission> permissions = new HashSet<>();
+                                JsonObject nodeJson = toJson(node);
+                                JsonObject policy = nodeJson.getAsJsonObject("rep:policy");
                                 if (policy != null) {
                                     List<Permission> acls = getACLs(policy, userManager);
-                                    if (acls.size() > 0) {
-                                        permissionLevels.add(new NodePermissionLevel(nodeLevel, acls));
+                                    if (acls != null && acls.size() > 0) {
+                                        permissions.addAll(acls);
                                     }
+                                }
+
+                                JsonObject cugPolicy = nodeJson.getAsJsonObject("rep:cugPolicy");
+                                if (cugPolicy != null) {
+                                    List<Permission> acls = getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), userManager);
+                                    if (acls != null && acls.size() > 0) {
+                                        permissions.addAll(acls);
+                                    }
+                                }
+
+                                if (permissions.size() > 0) {
+                                    List<Permission> nonDuplicatedPermissions = new ArrayList<>();
+                                    nonDuplicatedPermissions.addAll(permissions);
+                                    permissionLevels.add(new NodePermissionLevel(nodeLevel, nonDuplicatedPermissions));
                                     nodeLevel++;
                                 }
 

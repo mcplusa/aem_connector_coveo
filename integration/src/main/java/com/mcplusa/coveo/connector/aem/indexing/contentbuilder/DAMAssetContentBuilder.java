@@ -4,8 +4,10 @@ import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.ItemNotFoundException;
@@ -176,12 +178,28 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                             int nodeLevel = 0;
 
                             while (node != null) {
-                                JsonObject policy = toJson(node).getAsJsonObject("rep:policy");
+                                Set<Permission> permissions = new HashSet<>();
+                                JsonObject nodeJson = toJson(node);
+                                JsonObject policy = nodeJson.getAsJsonObject("rep:policy");
                                 if (policy != null) {
                                     List<Permission> acls = getACLs(policy, userManager);
-                                    if (acls.size() > 0) {
-                                        permissionLevels.add(new NodePermissionLevel(nodeLevel, acls));
+                                    if (acls != null && acls.size() > 0) {
+                                        permissions.addAll(acls);
                                     }
+                                }
+
+                                JsonObject cugPolicy = nodeJson.getAsJsonObject("rep:cugPolicy");
+                                if (cugPolicy != null) {
+                                    List<Permission> acls = getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), userManager);
+                                    if (acls != null && acls.size() > 0) {
+                                        permissions.addAll(acls);
+                                    }
+                                }
+
+                                if (permissions.size() > 0) {
+                                    List<Permission> nonDuplicatedPermissions = new ArrayList<>();
+                                    nonDuplicatedPermissions.addAll(permissions);
+                                    permissionLevels.add(new NodePermissionLevel(nodeLevel, nonDuplicatedPermissions));
                                     nodeLevel++;
                                 }
 

@@ -242,6 +242,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
      */
     protected List<Permission> getACLs(JsonObject policy, UserManager userManager) {
         Set<Permission> acl = new HashSet<>();
+        List<Authorizable> authorizables = getAllAuthorizables(userManager);
 
         try {
             for (String key : policy.keySet()) {
@@ -250,7 +251,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                     String princ = rep.getAsJsonObject().get("rep:principalName").getAsString();
                     String type = rep.getAsJsonObject().get("jcr:primaryType").getAsString();
                     JsonArray priv = rep.getAsJsonObject().getAsJsonArray("rep:privileges");
-                    Optional<Boolean> isGroup = principalIsGroup(userManager, princ);
+                    Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
 
                     if (isGroup.isPresent()) {
                         if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
@@ -272,6 +273,29 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return aclList;
     }
 
+    protected List<Permission> getCugACLs(JsonArray principalNames, UserManager userManager) {
+        Set<Permission> acl = new HashSet<>();
+        List<Authorizable> authorizables = getAllAuthorizables(userManager);
+
+        try {
+            for (JsonElement element : principalNames) {
+                String princ = element.getAsString();
+                Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
+
+                if (isGroup.isPresent()) {
+                    acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
+                }
+            }
+        } catch (Exception ex) {
+            LOG.error("Error getting CUG ACLs", ex);
+        }
+
+        List<Permission> aclList = new ArrayList<>();
+        aclList.addAll(acl);
+
+        return aclList;
+    }
+
     private boolean hasPrivileges(JsonArray privileges) {
         for (JsonElement priv : privileges) {
             return priv.getAsString().equals("jcr:read") || priv.getAsString().equals("jcr:all");
@@ -280,29 +304,33 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return false;
     }
 
-    private Iterator<Authorizable> getAllAuthorizables(UserManager userManager) {
+    private List<Authorizable> getAllAuthorizables(UserManager userManager) {
+        List<Authorizable> authorizables = new ArrayList<>();
+    
         try {
-            return userManager.findAuthorizables(new Query() {
+            Iterator<Authorizable> iterator = userManager.findAuthorizables(new Query() {
                 public <T> void build(QueryBuilder<T> builder) {
                     // Get All Authorizables
                 }
             });
+
+            while (iterator.hasNext()) {
+                authorizables.add(iterator.next());
+            }
+
+            return authorizables;
+
         } catch (RepositoryException ex) {
             LOG.error("Error getting authorizables", ex);
-            return null;
+            return authorizables;
         }
     }
 
-    protected Optional<Boolean> principalIsGroup(UserManager userManager, String principalName) {
+    protected Optional<Boolean> principalIsGroup(List<Authorizable> authorizables, String principalName) {
         try {
-            Iterator<Authorizable> authorizables = getAllAuthorizables(userManager);
-            if (authorizables != null) {
-                for (Iterator iterator = authorizables; iterator.hasNext();) {
-
-                    Authorizable auth = (Authorizable) iterator.next();
-                    if (auth.getID().equals(principalName)) {
-                        return Optional.of(auth.isGroup());
-                    }
+            for (Authorizable auth : authorizables) {
+                if (auth.getID().equals(principalName)) {
+                    return Optional.of(auth.isGroup());
                 }
             }
         } catch (RepositoryException ex) {
