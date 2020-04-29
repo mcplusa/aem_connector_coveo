@@ -5,10 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 @Getter
 @Setter
 @AllArgsConstructor
+@EqualsAndHashCode
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Permission {
