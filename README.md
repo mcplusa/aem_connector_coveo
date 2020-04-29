@@ -58,11 +58,11 @@ The following values are needed:
 
 Information about how to create a security identity can be found in the document [Creating a Security Identity Provider for a Secured Push Source](https://docs.coveo.com/en/85/cloud-v2-developers/creating-a-security-identity-provider-for-a-secured-push-source) and can be easily done using the [Coveo swagger API](https://platform.cloud.coveo.com/docs?api=SecurityCache#!/Security32Providers/rest_organizations_paramId_securityproviders_paramId_put).
 
- - securityProviderId must be: `aem-security-provider`
+ - securityProviderId must be: `aem-security-identity`
  - The payload must be:
 ```
 {
-  "name" : "aem-security-provider",
+  "name" : "aem-security-identity",
   "nodeRequired": false,
   "type": "EXPANDED",
   "referencedBy": [
@@ -124,8 +124,8 @@ After a successful installation, visit the [System Configuration](http://localho
  - Environment (production, hipaa, etc.)
  - Agent ID _(You will have this value in [Setup Replication Agent](#setup-replication-agent) step)_
  - Impersonation API Key _(from the [Generate an Impersonation API Key](#generate-an-impersonation-api-key) section)_
- - Users Identity Provider _Identity Provider used for User permissions, the value should be "aem-security-provider"_
- - Groups Identity Provider _Identity Provider used for Groups permissions, the value should be "aem-security-provider"_
+ - Users Identity Provider _Identity Provider used for User permissions, the value should be "aem-security-identity"_
+ - Groups Identity Provider _Identity Provider used for Groups permissions, the value should be "aem-security-identity"_
 
 ### Setup Replication Agent
 
