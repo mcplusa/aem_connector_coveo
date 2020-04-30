@@ -36,6 +36,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -108,10 +109,12 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
 
                         // Retrieve ACLs from policy
                         try {
+                            
                             List<NodePermissionLevel> permissionLevels = new ArrayList<>();
                             ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
                             Session adminSession = resourceResolver.adaptTo(Session.class);
                             UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+                            List<Authorizable> authorizables = getAllAuthorizables(userManager);
 
                             Node node = adminSession.getNode(path);
                             int nodeLevel = 0;
@@ -121,21 +124,21 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                                 JsonObject nodeJson = toJson(node);
                                 JsonObject policy = nodeJson.getAsJsonObject("rep:policy");
                                 if (policy != null) {
-                                    List<Permission> acls = getACLs(policy, userManager);
-                                    if (acls != null && acls.size() > 0) {
+                                    List<Permission> acls = getACLs(policy, authorizables);
+                                    if (acls != null && !acls.isEmpty()) {
                                         permissions.addAll(acls);
                                     }
                                 }
 
                                 JsonObject cugPolicy = nodeJson.getAsJsonObject("rep:cugPolicy");
                                 if (cugPolicy != null) {
-                                    List<Permission> acls = getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), userManager);
-                                    if (acls != null && acls.size() > 0) {
-                                        permissions.addAll(acls);
+                                    List<Permission> cugAcls = getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
+                                    if (cugAcls != null && !cugAcls.isEmpty()) {
+                                        permissions.addAll(cugAcls);
                                     }
                                 }
 
-                                if (permissions.size() > 0) {
+                                if (!permissions.isEmpty()) {
                                     List<Permission> nonDuplicatedPermissions = new ArrayList<>();
                                     nonDuplicatedPermissions.addAll(permissions);
                                     permissionLevels.add(new NodePermissionLevel(nodeLevel, nonDuplicatedPermissions));
@@ -144,6 +147,9 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
 
                                 try {
                                     node = node.getParent();
+                                    if (node.getPath().equals("/") || node.getPath().equals("/content")) {
+                                        node = null;
+                                    }
                                 } catch (ItemNotFoundException e) {
                                     node = null;
                                 }
