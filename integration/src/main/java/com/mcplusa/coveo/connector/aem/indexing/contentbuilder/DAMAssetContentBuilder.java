@@ -181,21 +181,24 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
 
                             while (node != null) {
                                 Set<Permission> permissions = new HashSet<>();
-                                JsonObject nodeJson = toJson(node);
-                                JsonObject policy = nodeJson.getAsJsonObject("rep:policy");
-                                if (policy != null) {
-                                    List<Permission> acls = getACLs(policy, authorizables);
-                                    if (acls != null && !acls.isEmpty()) {
-                                        permissions.addAll(acls);
-                                    }
+                                if (node.hasNode("rep:policy")) {
+                                  JsonObject policy = toJson(node.getNode("rep:policy"));
+                                  if (policy != null) {
+                                      List<Permission> acls = getACLs(policy, authorizables);
+                                      if (acls != null && !acls.isEmpty()) {
+                                          permissions.addAll(acls);
+                                      }
+                                  }
                                 }
 
-                                JsonObject cugPolicy = nodeJson.getAsJsonObject("rep:cugPolicy");
-                                if (cugPolicy != null) {
-                                    List<Permission> cugAcls = getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
-                                    if (cugAcls != null && !cugAcls.isEmpty()) {
-                                        permissions.addAll(cugAcls);
-                                    }
+                                if (node.hasNode("rep:cugPolicy")) {
+                                  JsonObject cugPolicy = toJson(node.getNode("rep:cugPolicy"));
+                                  if (cugPolicy != null) {
+                                      List<Permission> cugAcls = getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
+                                      if (cugAcls != null && !cugAcls.isEmpty()) {
+                                          permissions.addAll(cugAcls);
+                                      }
+                                  }
                                 }
 
                                 if (permissions.size() > 0) {
