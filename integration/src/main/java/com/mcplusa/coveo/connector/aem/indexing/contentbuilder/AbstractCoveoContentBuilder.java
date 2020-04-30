@@ -153,15 +153,9 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                 if (sList.size() > 0) {
                     return sList;
                 }
-
-            } else if (value instanceof String) {
-                Tag tag = tagManager.resolve((String) value);
-                if (tag != null) {
-                    return tag.getTitlePath();
-                }
             }
         } catch (Exception e) {
-            LOG.error("Error tags", e.getMessage());
+            LOG.error("Error tags", e);
         }
 
         return value;
@@ -236,13 +230,12 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
      * Returns the content policy bound to the given component.
      *
      * @param policy json
-     * @param userManager manager
+     * @param authorizables list of authorizables
      * @return the content policy. May be {@code nulll} in case no content
      * policy can be found.
      */
-    protected List<Permission> getACLs(JsonObject policy, UserManager userManager) {
+    protected List<Permission> getACLs(JsonObject policy, List<Authorizable> authorizables) {
         Set<Permission> acl = new HashSet<>();
-        List<Authorizable> authorizables = getAllAuthorizables(userManager);
 
         try {
             for (String key : policy.keySet()) {
@@ -273,9 +266,8 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return aclList;
     }
 
-    protected List<Permission> getCugACLs(JsonArray principalNames, UserManager userManager) {
+    protected List<Permission> getCugACLs(JsonArray principalNames, List<Authorizable> authorizables) {
         Set<Permission> acl = new HashSet<>();
-        List<Authorizable> authorizables = getAllAuthorizables(userManager);
 
         try {
             for (JsonElement element : principalNames) {
@@ -304,7 +296,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return false;
     }
 
-    private List<Authorizable> getAllAuthorizables(UserManager userManager) {
+    protected List<Authorizable> getAllAuthorizables(UserManager userManager) {
         List<Authorizable> authorizables = new ArrayList<>();
     
         try {
