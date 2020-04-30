@@ -153,6 +153,11 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                 if (sList.size() > 0) {
                     return sList;
                 }
+            } else if (value instanceof String) {
+                Tag tag = tagManager.resolve((String) value);
+                if (tag != null) {
+                    return tag.getTitlePath();
+                }
             }
         } catch (Exception e) {
             LOG.error("Error tags", e);
