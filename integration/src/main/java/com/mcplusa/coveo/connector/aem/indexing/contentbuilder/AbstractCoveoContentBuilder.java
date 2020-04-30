@@ -146,7 +146,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                 for (String el : (List<String>) value) {
                     Tag tag = tagManager.resolve(el);
                     if (tag != null) {
-                        sList.add(tag.getTitlePath());
+                        sList.add(tag.getTitle());
                     }
                 }
 
@@ -156,7 +156,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
             } else if (value instanceof String) {
                 Tag tag = tagManager.resolve((String) value);
                 if (tag != null) {
-                    return tag.getTitlePath();
+                    return tag.getTitle();
                 }
             }
         } catch (Exception e) {
