@@ -76,7 +76,7 @@ public class CoveoService {
     }
   }
 
-  private void createIdentityProvider() {
+  public void createIdentityProvider() {
     if (client != null && config.getOrganizationId() != null && config.getSourceId() != null
         && config.getAccessToken() != null) {
       BatchIdentity batchIdentity = this.userManagerService.getIdentityList();
