@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 @Component
 @Service(value = Runnable.class)
-@Properties({ @Property(name = "scheduler.expression", value = "0 0 */6 ? * *"),
+@Properties({ @Property(name = "scheduler.expression", value = "0 0 */3 ? * *"),
     @Property(name = "scheduler.concurrent", boolValue = false) })
 public class SecurityIdentityCronJob implements Runnable {
 
