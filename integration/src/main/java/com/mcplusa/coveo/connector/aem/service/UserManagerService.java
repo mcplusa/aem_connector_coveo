@@ -73,9 +73,7 @@ public class UserManagerService {
             Iterator<Authorizable> auths = group.getMembers();
             for (Iterator<Authorizable> i = auths; auths.hasNext();) {
               Authorizable authorizable = i.next();
-              if (authorizable.isGroup()) {
-                wellKnowns.add(new Identity(authorizable.getPrincipal().getName(), GROUP_TYPE));
-              } else {
+              if (!authorizable.isGroup()) {
                 membersList.add(new Identity(authorizable.getPrincipal().getName(), USER_TYPE));
               }
             }
