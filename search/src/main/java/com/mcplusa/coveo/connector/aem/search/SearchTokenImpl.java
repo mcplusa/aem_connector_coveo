@@ -8,10 +8,8 @@ import com.mcplusa.coveo.connector.aem.search.service.CoveoSearchConfiguration;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.felix.scr.annotations.Component;
@@ -25,10 +23,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.slf4j.Logger;
@@ -89,28 +83,19 @@ public class SearchTokenImpl implements SearchToken {
    * user.
    * 
    * @return a list of UserId that contains the userId and groups.
-   * @throws RepositoryException if error occurs.
    */
-  private List<UserId> getUserIds() throws RepositoryException {
+  private List<UserId> getUserIds() {
     List<UserId> userIds = new ArrayList<>();
 
     ResourceResolver resourceResolver = resolverFactory.getThreadResourceResolver();
     Session session = resourceResolver.adaptTo(Session.class);
-    UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-    User auth = (User)userManager.getAuthorizable(session.getUserID());
 
-    userIds.add(new UserId(session.getUserID(), coveoConfig.getUserIdentityProvider(), "User"));
-    userIds.add(new UserId(session.getUserID(), coveoConfig.getAemIdentityProvider(), "User"));
-    userIds.add(new UserId(session.getUserID(), "Email Security Provider", "User"));
-
-    Iterator<Group> groups = auth.memberOf();
-
-    while (groups.hasNext()) {
-      String groupName = groups.next().getPrincipal().getName();
-      userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "Group"));
-      userIds.add(new UserId(groupName, coveoConfig.getGroupIdentityProvider(), "VirtualGroup"));
-      userIds.add(new UserId(groupName, coveoConfig.getAemIdentityProvider(), "VirtualGroup"));
+    if (coveoConfig.getUserIdentityProvider() != null
+        && !coveoConfig.getUserIdentityProvider().equals(coveoConfig.getAemIdentityProvider())) {
+      userIds.add(new UserId(session.getUserID(), coveoConfig.getUserIdentityProvider(), "User"));
     }
+
+    userIds.add(new UserId(session.getUserID(), coveoConfig.getAemIdentityProvider(), "User"));
 
     return userIds;
   }
