@@ -337,7 +337,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         return Optional.empty();
     }
 
-    protected <T> T getLastValue(Map<String, Object> res, String key) {
+    protected <T> T getLastValue(Map<String, Object> res, String key, final Class<T> type) {
         Object value = res.get(key);
         if (value == null) {
             return null;
@@ -346,8 +346,15 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         try {
             if (value instanceof List<?>) {
                 List<T> list = (List<T>) value;
-                if (list.size() > 0) {
+                if (!list.isEmpty()) {
                     return list.get(list.size() - 1);
+                }
+
+                return null;
+            } else if (value instanceof String[]) {
+                T[] list = (T[]) value;
+                if (list.length > 0) {
+                    return (T) list[list.length - 1];
                 }
 
                 return null;
@@ -355,6 +362,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                 return (T) value;
             }
         } catch (ClassCastException ex) {
+            LOG.warn("Could not cast {} to {}, value classname is {}", key, type, value.getClass().getSimpleName(), ex);
             return null;
         }
     }

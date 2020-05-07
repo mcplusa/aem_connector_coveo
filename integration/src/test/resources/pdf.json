@@ -10,6 +10,8 @@
             "jcr:primaryType": "dam:Asset",
             "sling:resourceType": "foo/components/bar",
             "metadata": {
+                "dc:title": ["The Docker Book", "The Docker Book"],
+                "dc:title_xmpArrayType": "rdf:Alt",
                 "dc:format": "application/pdf",
                 "jcr:lastModified": "2020-03-10T14:15:25.774-03:00",
                 "dam:size": 35067
