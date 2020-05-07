@@ -93,7 +93,7 @@ public class DAMAssetContentBuilderTest {
         assertEquals(AppAemContext.PDF, entry.getPath());
         assertEquals("asset", entry.getType());
 
-        assertEquals("the_docker_book.pdf", entry.getContent("title", String.class));
+        assertEquals("The Docker Book", entry.getContent("title", String.class));
         assertEquals("admin", entry.getContent("author", String.class));
 
         assertEquals(false, entry.getContent().containsKey("notexist"));

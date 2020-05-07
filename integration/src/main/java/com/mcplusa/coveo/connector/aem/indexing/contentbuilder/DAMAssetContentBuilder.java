@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Content Builder for DAM Assets
+ * Content Builder for DAM Assets.
  */
 @Component(immediate = true)
 @Service(CoveoContentBuilder.class)
@@ -98,14 +98,14 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                             LOG.error("Could not extract additionals properties from the node", ex);
                         }
 
-                        if (this.<String>getLastValue(allProperties, "dc:title") != null) {
-                            ret.addContent("title", this.<String>getLastValue(allProperties, "dc:title"));
+                        if (this.getLastValue(allProperties, "dc:title", String.class) != null) {
+                            ret.addContent("title", this.getLastValue(allProperties, "dc:title", String.class));
                         } else if (asset.getName() != null) {
                             ret.addContent("title", asset.getName());
                         }
 
-                        if (this.<String>getLastValue(allProperties, "dc:description") != null) {
-                            String description = this.<String>getLastValue(allProperties, "dc:description");
+                        if (this.getLastValue(allProperties, "dc:description", String.class) != null) {
+                            String description = this.getLastValue(allProperties, "dc:description", String.class);
                             if (description == null || description.equals("null")) {
                                 description = "";
                             }
@@ -136,19 +136,19 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                             ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
                         }
 
-                        if (this.<String>getLastValue(res.getValueMap(), "jcr:createdBy") != null) {
-                            ret.addContent("author", this.<String>getLastValue(res.getValueMap(), "jcr:createdBy"));
+                        if (this.getLastValue(res.getValueMap(), "jcr:createdBy", String.class) != null) {
+                            ret.addContent("author", this.getLastValue(res.getValueMap(), "jcr:createdBy", String.class));
                         }
 
-                        if (this.<Long>getLastValue(res.getValueMap(), "jcr:created") != null) {
-                            ret.addContent("created", this.<Long>getLastValue(res.getValueMap(), "jcr:created"));
+                        if (this.getLastValue(res.getValueMap(), "jcr:created", Long.class) != null) {
+                            ret.addContent("created", this.getLastValue(res.getValueMap(), "jcr:created", Long.class));
                         }
 
                         ret.addContent("lastmodified", asset.getLastModified());
                         ret.addContent("previewUrl", documentId);
 
                         if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
-                            Long videoDuration = this.<Long>getLastValue(allProperties, "videoDuration");
+                            Long videoDuration = this.getLastValue(allProperties, "videoDuration", Long.class);
 
                             if (videoDuration != null) {
                                 ret.addContent("duration", videoDuration);
@@ -156,8 +156,8 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
                         }
 
                         if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
-                            Long width = this.<Long>getLastValue(allProperties, "tiff:ImageWidth");
-                            Long height = this.<Long>getLastValue(allProperties, "tiff:ImageLength");
+                            Long width = this.getLastValue(allProperties, "tiff:ImageWidth", Long.class);
+                            Long height = this.getLastValue(allProperties, "tiff:ImageLength", Long.class);
 
                             if (width != null) {
                                 ret.addContent("width", width);
@@ -244,7 +244,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     }
 
     /**
-     * Generate a html content with a video player
+     * Generate a html content with a video player.
      * 
      * @param url         URL of the video
      * @param mimeType    mimetype of video (i.e. mp4)
