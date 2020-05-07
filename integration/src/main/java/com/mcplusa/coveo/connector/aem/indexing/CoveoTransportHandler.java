@@ -294,8 +294,9 @@ public class CoveoTransportHandler implements TransportHandler {
     String documentId = indexEntry.getContent("documentId", String.class);
     Document doc = new Document(documentId);
 
-    if (indexEntry.getContent("title", String.class) != null)
+    if (indexEntry.getContent("title", String.class) != null) {
       doc.setTitle(indexEntry.getContent("title", String.class));
+    }
 
     Map<String, Object> valuesMap = new HashMap<>();
 
@@ -306,14 +307,17 @@ public class CoveoTransportHandler implements TransportHandler {
     });
     doc.setMetadata(valuesMap);
 
-    if (indexEntry.getContent("lastmodified", Long.class) != null)
+    if (indexEntry.getContent("lastmodified", Long.class) != null) {
       doc.addMetadata("date", indexEntry.getContent("lastmodified", Long.class), Long.class);
+    }
 
-    if (indexEntry.getContent("created", Long.class) != null)
+    if (indexEntry.getContent("created", Long.class) != null) {
       doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
+    }
 
-    if (indexEntry.getContent("author", String.class) != null)
+    if (indexEntry.getContent("author", String.class) != null) {
       doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
+    }
 
     Optional<String> extension = getExtension(documentId);
     if (extension.isPresent()) {
