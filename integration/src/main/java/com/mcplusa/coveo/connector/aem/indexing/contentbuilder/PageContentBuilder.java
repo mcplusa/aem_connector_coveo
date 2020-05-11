@@ -127,7 +127,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                 if (node.hasNode("rep:policy")) {
                   JsonObject policy = toJson(node.getNode("rep:policy"));
                   if (policy != null) {
-                    List<Permission> acls = getACLs(policy, authorizables);
+                    List<Permission> acls = getAcls(policy, authorizables);
                     if (acls != null && !acls.isEmpty()) {
                       permissions.addAll(acls);
                     }
@@ -138,7 +138,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
                   JsonObject cugPolicy = toJson(node.getNode("rep:cugPolicy"));
                   if (cugPolicy != null) {
                     List<Permission> cugAcls =
-                        getCugACLs(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
+                        getCugAcls(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
                     if (cugAcls != null && !cugAcls.isEmpty()) {
                       permissions.addAll(cugAcls);
                     }

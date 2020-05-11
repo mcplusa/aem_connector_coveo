@@ -77,7 +77,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
 
   private CoveoIndexConfiguration getIndexConfig(String primaryType) {
     try {
-      ServiceReference[] serviceReferences =
+      ServiceReference<?>[] serviceReferences =
           context.getServiceReferences(
               CoveoIndexConfiguration.class.getName(),
               "(" + CoveoIndexConfiguration.PROPERTY_BASE_PATH + "=" + primaryType + ")");
@@ -164,7 +164,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
           }
         }
 
-        if (subList.size() > 0) {
+        if (!subList.isEmpty()) {
           return subList;
         }
       } else if (value instanceof String) {
@@ -264,7 +264,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
    * @param authorizables list of authorizables
    * @return the content policy. May be {@code nulll} in case no content policy can be found.
    */
-  protected List<Permission> getACLs(JsonObject policy, List<Authorizable> authorizables) {
+  protected List<Permission> getAcls(JsonObject policy, List<Authorizable> authorizables) {
     Set<Permission> acl = new HashSet<>();
 
     try {
@@ -296,7 +296,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     return aclList;
   }
 
-  protected List<Permission> getCugACLs(
+  protected List<Permission> getCugAcls(
       JsonArray principalNames, List<Authorizable> authorizables) {
     Set<Permission> acl = new HashSet<>();
 
@@ -368,6 +368,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     return Optional.empty();
   }
 
+  @SuppressWarnings("unchecked")
   protected <T> T getLastValue(Map<String, Object> res, String key, final Class<T> type) {
     Object value = res.get(key);
     if (value == null) {
