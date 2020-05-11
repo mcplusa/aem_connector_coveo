@@ -41,333 +41,369 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractCoveoContentBuilder.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractCoveoContentBuilder.class);
 
-    private TagManager tagManager;
-    
-    private BundleContext context;
+  private TagManager tagManager;
 
-    @Activate
-    public void activate(BundleContext context) {
-        this.context = context;
+  private BundleContext context;
+
+  @Activate
+  public void activate(BundleContext context) {
+    this.context = context;
+  }
+
+  /**
+   * Get all properties, it will merge the configured properties with fixed rules.
+   *
+   * @param primaryType document type
+   * @return List with all properties to index
+   */
+  protected String[] getIndexRules(String primaryType) {
+    CoveoIndexConfiguration config = getIndexConfig(primaryType);
+    if (config != null) {
+      return ArrayUtils.addAll(config.getIndexRules(), getFixedRules());
     }
+    return getFixedRules();
+  }
 
-    /**
-     * @param primaryType document type
-     * @return List with all properties to index
-     */
-    protected String[] getIndexRules(String primaryType) {
-        CoveoIndexConfiguration config = getIndexConfig(primaryType);
-        if (config != null) {
-            return ArrayUtils.addAll(config.getIndexRules(), getFixedRules());
-        }
-        return getFixedRules();
+  /**
+   * Get all fixed rules.
+   *
+   * @return Array with hardcoded rules
+   */
+  protected String[] getFixedRules() {
+    return new String[0];
+  }
+
+  private CoveoIndexConfiguration getIndexConfig(String primaryType) {
+    try {
+      ServiceReference[] serviceReferences =
+          context.getServiceReferences(
+              CoveoIndexConfiguration.class.getName(),
+              "(" + CoveoIndexConfiguration.PROPERTY_BASE_PATH + "=" + primaryType + ")");
+      if (serviceReferences != null && serviceReferences.length > 0) {
+        return (CoveoIndexConfiguration) context.getService(serviceReferences[0]);
+      }
+    } catch (InvalidSyntaxException | NullPointerException ex) {
+      LOG.error("Exception during service lookup", ex);
     }
+    LOG.info("Could not load a CoveoConfiguration for primaryType {}", primaryType);
+    return null;
+  }
 
-    /**
-     *
-     * @return Array with hardcoded rules
-     */
-    protected String[] getFixedRules() {
-        return new String[0];
-    }
+  /**
+   * Recursively searches all child-resources for the given resources and returns a map with all of
+   * them.
+   *
+   * @param res Resource document
+   * @param properties properties to map
+   * @return Map with all properties
+   */
+  protected Map<String, Object> getProperties(Resource res, String[] properties) {
+    ValueMap vm = res.getValueMap();
+    Map<String, Object> ret =
+        Arrays.stream(properties)
+            .filter(property -> vm.containsKey(property) && vm.get(property) != null)
+            .collect(
+                Collectors.toMap(Function.identity(), property -> vm.get(property), (a, b) -> a));
 
-    private CoveoIndexConfiguration getIndexConfig(String primaryType) {
-        try {
-            ServiceReference[] serviceReferences = context.getServiceReferences(CoveoIndexConfiguration.class.getName(),
-                    "(" + CoveoIndexConfiguration.PROPERTY_BASE_PATH + "=" + primaryType + ")");
-            if (serviceReferences != null && serviceReferences.length > 0) {
-                return (CoveoIndexConfiguration) context.getService(serviceReferences[0]);
-            }
-        } catch (InvalidSyntaxException | NullPointerException ex) {
-            LOG.error("Exception during service lookup", ex);
-        }
-        LOG.info("Could not load a CoveoConfiguration for primaryType " + primaryType);
-        return null;
-    }
-
-    /**
-     * Recursively searches all child-resources for the given resources and
-     * returns a map with all of them
-     *
-     * @param res Resource document
-     * @param properties properties to map
-     * @return Map with all properties
-     */
-    protected Map<String, Object> getProperties(Resource res, String[] properties) {
-        ValueMap vm = res.getValueMap();
-        Map<String, Object> ret = Arrays.stream(properties)
-                .filter(property -> vm.containsKey(property) && vm.get(property) != null)
-                .collect(Collectors.toMap(Function.identity(), property -> vm.get(property), (a, b) -> a));
-
-        for (Resource child : res.getChildren()) {
-            Map<String, Object> props = getProperties(child, properties);
-            // merge properties
-            props.entrySet().forEach(entry -> {
+    for (Resource child : res.getChildren()) {
+      Map<String, Object> props = getProperties(child, properties);
+      // merge properties
+      props
+          .entrySet()
+          .forEach(
+              entry -> {
                 String key = entry.getKey();
                 if (!ret.containsKey(key)) {
-                    ret.put(key, entry.getValue());
+                  ret.put(key, entry.getValue());
                 } else {
-                    ret.put(key, mergeProperties(ret.get(entry.getKey()), entry.getValue()));
+                  ret.put(key, mergeProperties(ret.get(entry.getKey()), entry.getValue()));
                 }
-            });
-        }
-        return ret;
+              });
     }
+    return ret;
+  }
 
-    protected Map<String, Object> getAllProperties(Resource res) {
-        ValueMap vm = res.getValueMap();
-        Map<String, Object> ret = new HashMap<>();
-        ret.putAll(vm);
+  protected Map<String, Object> getAllProperties(Resource res) {
+    ValueMap vm = res.getValueMap();
+    Map<String, Object> ret = new HashMap<>();
+    ret.putAll(vm);
 
-        for (Resource child : res.getChildren()) {
-            Map<String, Object> props = getAllProperties(child);
-            // merge properties
-            props.entrySet().forEach(entry -> {
+    for (Resource child : res.getChildren()) {
+      Map<String, Object> props = getAllProperties(child);
+      // merge properties
+      props
+          .entrySet()
+          .forEach(
+              entry -> {
                 String key = entry.getKey();
                 if (!ret.containsKey(key)) {
-                    ret.put(key, entry.getValue());
+                  ret.put(key, entry.getValue());
                 } else {
-                    ret.put(key, mergeProperties(ret.get(entry.getKey()), entry.getValue()));
+                  ret.put(key, mergeProperties(ret.get(entry.getKey()), entry.getValue()));
                 }
-            });
-        }
-        return ret;
+              });
+    }
+    return ret;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Object resolveTags(Object value) {
+    if (value == null) {
+      return value;
     }
 
-    private Object resolveTags(Object value) {
-        if (value == null) {
-            return value;
+    try {
+      if (value instanceof List) {
+        List<String> subList = new ArrayList<>();
+        for (String el : (List<String>) value) {
+          Tag tag = tagManager.resolve(el);
+          if (tag != null) {
+            subList.add(tag.getTitle());
+          }
         }
 
-        try {
-            if (value instanceof List) {
-                List<String> sList = new ArrayList<>();
-                for (String el : (List<String>) value) {
-                    Tag tag = tagManager.resolve(el);
-                    if (tag != null) {
-                        sList.add(tag.getTitle());
-                    }
-                }
-
-                if (sList.size() > 0) {
-                    return sList;
-                }
-            } else if (value instanceof String) {
-                Tag tag = tagManager.resolve((String) value);
-                if (tag != null) {
-                    return tag.getTitle();
-                }
-            }
-        } catch (Exception e) {
-            LOG.error("Error tags", e);
+        if (subList.size() > 0) {
+          return subList;
         }
-
-        return value;
-    }
-
-    private Object[] mergeProperties(Object obj1, Object obj2) {
-        List<Object> tmp = new ArrayList<>();
-        addProperty(tmp, obj1);
-        addProperty(tmp, obj2);
-        return tmp.toArray(new Object[tmp.size()]);
-    }
-
-    private void addProperty(List<Object> list, Object property) {
-        if (property.getClass().isArray()) {
-            list.addAll(Arrays.asList((Object[]) property));
-        } else {
-            list.add(property);
+      } else if (value instanceof String) {
+        Tag tag = tagManager.resolve((String) value);
+        if (tag != null) {
+          return tag.getTitle();
         }
+      }
+    } catch (Exception e) {
+      LOG.error("Error tags", e);
     }
 
-    protected JsonObject toJson(Node node) {
-        try {
-            StringWriter stringWriter = new StringWriter();
-            JsonItemWriter jsonWriter = new JsonItemWriter(null);
-            jsonWriter.dump(node, stringWriter, -1, true);
-            Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(); //disableHtmlEscaping in JSON
-            return gson.fromJson(stringWriter.toString(), JsonObject.class);
-        } catch (RepositoryException | JSONException ex) {
-            LOG.error("Error toJson", ex);
-        }
-        return null;
-    }
+    return value;
+  }
 
-    protected Map<String, Object> getJsonProperties(JsonObject json, String[] properties) {
-        Map<String, Object> props = new HashMap<>();
-        json.keySet().forEach(key -> {
-            JsonElement el = json.get(key);
-            if (el != null && el.isJsonObject()) {
-                Map<String, Object> childProps = this.getJsonProperties(el.getAsJsonObject(), properties);
+  private Object[] mergeProperties(Object obj1, Object obj2) {
+    List<Object> tmp = new ArrayList<>();
+    addProperty(tmp, obj1);
+    addProperty(tmp, obj2);
+    return tmp.toArray(new Object[tmp.size()]);
+  }
+
+  private void addProperty(List<Object> list, Object property) {
+    if (property.getClass().isArray()) {
+      list.addAll(Arrays.asList((Object[]) property));
+    } else {
+      list.add(property);
+    }
+  }
+
+  protected JsonObject toJson(Node node) {
+    try {
+      StringWriter stringWriter = new StringWriter();
+      JsonItemWriter jsonWriter = new JsonItemWriter(null);
+      jsonWriter.dump(node, stringWriter, -1, true);
+      Gson gson =
+          new GsonBuilder()
+              .setPrettyPrinting()
+              .disableHtmlEscaping()
+              .create(); // disableHtmlEscaping in JSON
+      return gson.fromJson(stringWriter.toString(), JsonObject.class);
+    } catch (RepositoryException | JSONException ex) {
+      LOG.error("Error toJson", ex);
+    }
+    return null;
+  }
+
+  protected Map<String, Object> getJsonProperties(JsonObject json, String[] properties) {
+    Map<String, Object> props = new HashMap<>();
+    json.keySet()
+        .forEach(
+            key -> {
+              JsonElement el = json.get(key);
+              if (el != null && el.isJsonObject()) {
+                Map<String, Object> childProps =
+                    this.getJsonProperties(el.getAsJsonObject(), properties);
                 // merge properties
-                childProps.entrySet().forEach(entry -> {
-                    String ckey = entry.getKey();
-                    if (!props.containsKey(ckey)) {
-                        props.put(ckey, entry.getValue());
-                    } else {
-                        props.put(ckey, mergeProperties(props.get(entry.getKey()), entry.getValue()));
-                    }
-                });
-            } else if (el != null && matchProperty(key, properties)) {
+                childProps
+                    .entrySet()
+                    .forEach(
+                        entry -> {
+                          String ckey = entry.getKey();
+                          if (!props.containsKey(ckey)) {
+                            props.put(ckey, entry.getValue());
+                          } else {
+                            props.put(
+                                ckey, mergeProperties(props.get(entry.getKey()), entry.getValue()));
+                          }
+                        });
+              } else if (el != null && matchProperty(key, properties)) {
                 if (el.isJsonArray()) {
-                    props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
+                  props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
                 } else {
-                    props.put(key, el.getAsString());
+                  props.put(key, el.getAsString());
                 }
-            }
-        });
-
-        return props.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> resolveTags(e.getValue())));
-    }
-
-    private boolean matchProperty(String key, String[] properties) {
-        for (int i = 0; i < properties.length; i++) {
-            if (properties[i].equals(key)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns the content policy bound to the given component.
-     *
-     * @param policy json
-     * @param authorizables list of authorizables
-     * @return the content policy. May be {@code nulll} in case no content
-     * policy can be found.
-     */
-    protected List<Permission> getACLs(JsonObject policy, List<Authorizable> authorizables) {
-        Set<Permission> acl = new HashSet<>();
-
-        try {
-            for (String key : policy.keySet()) {
-                JsonElement rep = policy.get(key);
-                if (rep.isJsonObject()) {
-                    String princ = rep.getAsJsonObject().get("rep:principalName").getAsString();
-                    String type = rep.getAsJsonObject().get("jcr:primaryType").getAsString();
-                    JsonArray priv = rep.getAsJsonObject().getAsJsonArray("rep:privileges");
-                    Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
-
-                    if (isGroup.isPresent()) {
-                        if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
-                            acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
-                        } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
-                            acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup.get()));
-                        }
-                    }
-                }
-            }
-
-        } catch (Exception ex) {
-            LOG.error("Error getting ACLs", ex);
-        }
-
-        List<Permission> aclList = new ArrayList<>();
-        aclList.addAll(acl);
-
-        return aclList;
-    }
-
-    protected List<Permission> getCugACLs(JsonArray principalNames, List<Authorizable> authorizables) {
-        Set<Permission> acl = new HashSet<>();
-
-        try {
-            for (JsonElement element : principalNames) {
-                String princ = element.getAsString();
-                Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
-
-                if (isGroup.isPresent()) {
-                    acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
-                }
-            }
-        } catch (Exception ex) {
-            LOG.error("Error getting CUG ACLs", ex);
-        }
-
-        List<Permission> aclList = new ArrayList<>();
-        aclList.addAll(acl);
-
-        return aclList;
-    }
-
-    private boolean hasPrivileges(JsonArray privileges) {
-        for (JsonElement priv : privileges) {
-            return priv.getAsString().equals("jcr:read") || priv.getAsString().equals("jcr:all");
-        }
-
-        return false;
-    }
-
-    protected List<Authorizable> getAllAuthorizables(UserManager userManager) {
-        List<Authorizable> authorizables = new ArrayList<>();
-    
-        try {
-            Iterator<Authorizable> iterator = userManager.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
-                    // Get All Authorizables
-                }
+              }
             });
 
-            while (iterator.hasNext()) {
-                authorizables.add(iterator.next());
+    return props.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> resolveTags(e.getValue())));
+  }
+
+  private boolean matchProperty(String key, String[] properties) {
+    for (int i = 0; i < properties.length; i++) {
+      if (properties[i].equals(key)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Returns the content policy bound to the given component.
+   *
+   * @param policy json
+   * @param authorizables list of authorizables
+   * @return the content policy. May be {@code nulll} in case no content policy can be found.
+   */
+  protected List<Permission> getACLs(JsonObject policy, List<Authorizable> authorizables) {
+    Set<Permission> acl = new HashSet<>();
+
+    try {
+      for (String key : policy.keySet()) {
+        JsonElement rep = policy.get(key);
+        if (rep.isJsonObject()) {
+          String princ = rep.getAsJsonObject().get("rep:principalName").getAsString();
+          String type = rep.getAsJsonObject().get("jcr:primaryType").getAsString();
+          JsonArray priv = rep.getAsJsonObject().getAsJsonArray("rep:privileges");
+          Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
+
+          if (isGroup.isPresent()) {
+            if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
+              acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
+            } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
+              acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup.get()));
             }
-
-            return authorizables;
-
-        } catch (RepositoryException ex) {
-            LOG.error("Error getting authorizables", ex);
-            return authorizables;
+          }
         }
+      }
+
+    } catch (Exception ex) {
+      LOG.error("Error getting ACLs", ex);
     }
 
-    protected Optional<Boolean> principalIsGroup(List<Authorizable> authorizables, String principalName) {
-        try {
-            for (Authorizable auth : authorizables) {
-                if (auth.getID().equals(principalName)) {
-                    return Optional.of(auth.isGroup());
+    List<Permission> aclList = new ArrayList<>();
+    aclList.addAll(acl);
+
+    return aclList;
+  }
+
+  protected List<Permission> getCugACLs(
+      JsonArray principalNames, List<Authorizable> authorizables) {
+    Set<Permission> acl = new HashSet<>();
+
+    try {
+      for (JsonElement element : principalNames) {
+        String princ = element.getAsString();
+        Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
+
+        if (isGroup.isPresent()) {
+          acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
+        }
+      }
+    } catch (Exception ex) {
+      LOG.error("Error getting CUG ACLs", ex);
+    }
+
+    List<Permission> aclList = new ArrayList<>();
+    aclList.addAll(acl);
+
+    return aclList;
+  }
+
+  private boolean hasPrivileges(JsonArray privileges) {
+    for (JsonElement priv : privileges) {
+      if (priv.getAsString().equals("jcr:read") || priv.getAsString().equals("jcr:all")) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  protected List<Authorizable> getAllAuthorizables(UserManager userManager) {
+    List<Authorizable> authorizables = new ArrayList<>();
+
+    try {
+      Iterator<Authorizable> iterator =
+          userManager.findAuthorizables(
+              new Query() {
+                public <T> void build(QueryBuilder<T> builder) {
+                  // Get All Authorizables
                 }
-            }
-        } catch (RepositoryException ex) {
-            LOG.error("Error while checking principal", ex);
-        }
+              });
 
-        return Optional.empty();
+      while (iterator.hasNext()) {
+        authorizables.add(iterator.next());
+      }
+
+      return authorizables;
+
+    } catch (RepositoryException ex) {
+      LOG.error("Error getting authorizables", ex);
+      return authorizables;
+    }
+  }
+
+  protected Optional<Boolean> principalIsGroup(
+      List<Authorizable> authorizables, String principalName) {
+    try {
+      for (Authorizable auth : authorizables) {
+        if (auth.getID().equals(principalName)) {
+          return Optional.of(auth.isGroup());
+        }
+      }
+    } catch (RepositoryException ex) {
+      LOG.error("Error while checking principal", ex);
     }
 
-    protected <T> T getLastValue(Map<String, Object> res, String key, final Class<T> type) {
-        Object value = res.get(key);
-        if (value == null) {
-            return null;
-        }
+    return Optional.empty();
+  }
 
-        try {
-            if (value instanceof List<?>) {
-                List<T> list = (List<T>) value;
-                if (!list.isEmpty()) {
-                    return list.get(list.size() - 1);
-                }
-
-                return null;
-            } else if (value instanceof String[]) {
-                T[] list = (T[]) value;
-                if (list.length > 0) {
-                    return (T) list[list.length - 1];
-                }
-
-                return null;
-            } else {
-                return (T) value;
-            }
-        } catch (ClassCastException ex) {
-            LOG.warn("Could not cast {} to {}, value classname is {}", key, type, value.getClass().getSimpleName(), ex);
-            return null;
-        }
+  protected <T> T getLastValue(Map<String, Object> res, String key, final Class<T> type) {
+    Object value = res.get(key);
+    if (value == null) {
+      return null;
     }
 
-    protected void setTagManager(TagManager tagManager) {
-        this.tagManager = tagManager;
+    try {
+      if (value instanceof List<?>) {
+        List<T> list = (List<T>) value;
+        if (!list.isEmpty()) {
+          return list.get(list.size() - 1);
+        }
+
+        return null;
+      } else if (value instanceof String[]) {
+        T[] list = (T[]) value;
+        if (list.length > 0) {
+          return (T) list[list.length - 1];
+        }
+
+        return null;
+      } else {
+        return (T) value;
+      }
+    } catch (ClassCastException ex) {
+      LOG.warn(
+          "Could not cast {} to {}, value classname is {}",
+          key,
+          type,
+          value.getClass().getSimpleName(),
+          ex);
+      return null;
     }
+  }
+
+  protected void setTagManager(TagManager tagManager) {
+    this.tagManager = tagManager;
+  }
 }

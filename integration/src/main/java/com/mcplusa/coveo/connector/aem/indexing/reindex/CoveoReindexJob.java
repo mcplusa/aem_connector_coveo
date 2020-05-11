@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Service that performs a reindexing
+ * Service that performs a reindexing.
  */
 @Component(immediate = true)
 @Service(Runnable.class)
