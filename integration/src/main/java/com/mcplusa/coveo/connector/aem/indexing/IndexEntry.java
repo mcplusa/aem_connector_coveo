@@ -41,8 +41,13 @@ public class IndexEntry {
     setPath(path);
   }
 
+  /**
+   * Add content to the map content.
+   */
   public void addContent(String key, Object value) {
-    content.put(key, value);
+    if (value != null) {
+      content.put(key, value);
+    }
   }
 
   public void addContent(Map<String, Object> properties) {

@@ -9,7 +9,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
-import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
 import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.sdk.CoveoResponse;
@@ -17,14 +16,11 @@ import com.mcplusa.coveo.sdk.pushapi.CoveoPushClient;
 import com.mcplusa.coveo.sdk.pushapi.model.FileContainerResponse;
 import java.io.InputStream;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import org.apache.commons.lang3.ArrayUtils;
@@ -55,10 +51,15 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
   @Reference protected CoveoService coveoService;
 
   private static final Logger LOG = LoggerFactory.getLogger(DAMAssetContentBuilder.class);
+  private static final String TITLE_FIELDNAME = "dc:title";
+  private static final String DESCRIPTION_FIELDNAME = "dc:description";
+  private static final String CREATED_FIELDNAME = "jcr:created";
+  private static final String AUTHOR_FIELDNAME = "jcr:createdBy";
+  private static final String MODIFIED_FIELDNAME = "jcr:lastModified";
   public static final String PRIMARY_TYPE_VALUE = "dam:Asset";
 
   private static final String[] FIXED_RULES = {
-    "dc:title", "dc:description", "jcr:created", "jcr:createdBy", "jcr:lastModified"
+    TITLE_FIELDNAME, DESCRIPTION_FIELDNAME, CREATED_FIELDNAME, AUTHOR_FIELDNAME, MODIFIED_FIELDNAME
   };
 
   @Override
@@ -77,170 +78,141 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
             documentId = externalizer.publishLink(resolver, path);
           }
           IndexEntry ret = new IndexEntry("idx", "asset", path);
+          ret.setDocumentId(documentId);
 
           if (includeContent) {
-            Map<String, Object> allProperties = getAllProperties(res);
-            ret.addContent(getProperties(res, indexRules));
-
-            // Extract additional properties from the Node
-            try {
-              Session session = resolver.adaptTo(Session.class);
-              Node node = session.getNode(path);
-              JsonObject content = toJson(node).getAsJsonObject("jcr:content");
-              if (content != null) {
-                Map<String, Object> allprops = getJsonProperties(content, indexRules);
-                ret.addContent(allprops);
-              }
-            } catch (Exception ex) {
-              LOG.error("Could not extract additionals properties from the node", ex);
-            }
-
-            if (this.getLastValue(allProperties, "dc:title", String.class) != null) {
-              ret.addContent("title", this.getLastValue(allProperties, "dc:title", String.class));
-            } else if (asset.getName() != null) {
-              ret.addContent("title", asset.getName());
-            }
-
-            if (this.getLastValue(allProperties, "dc:description", String.class) != null) {
-              String description = this.getLastValue(allProperties, "dc:description", String.class);
-              if (description == null || description.equals("null")) {
-                description = "";
-              }
-              ret.addContent("description", description);
-            }
-
-            if (MimeTypes.Text.isText(asset.getMimeType()) != null
-                || MimeTypes.Image.isImage(asset.getMimeType()) != null
-                || MimeTypes.getType(asset.getMimeType()).isEmpty()) {
-              Rendition original = asset.getOriginal();
-              if (original != null) {
-                InputStream is = original.getStream();
-
-                if (is != null) {
-                  String content = pushToFileContainer(is);
-                  ret.addContent("fileId", content);
-                }
-              }
-
-            } else if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
-              String data =
-                  getVideoData(
-                      documentId,
-                      asset.getMimeType(),
-                      ret.getContent("title", String.class),
-                      ret.getContent("description", String.class));
-
-              String content = Base64.getEncoder().encodeToString(data.getBytes());
-              ret.addContent("content", content);
-            }
-
-            if (StringUtils.isNotEmpty(MimeTypes.getType(asset.getMimeType()))) {
-              ret.addContent("documenttype", MimeTypes.getType(asset.getMimeType()));
-            }
-
-            if (this.getLastValue(res.getValueMap(), "jcr:createdBy", String.class) != null) {
-              ret.addContent(
-                  "author", this.getLastValue(res.getValueMap(), "jcr:createdBy", String.class));
-            }
-
-            if (this.getLastValue(res.getValueMap(), "jcr:created", Long.class) != null) {
-              ret.addContent(
-                  "created", this.getLastValue(res.getValueMap(), "jcr:created", Long.class));
-            }
-
-            ret.addContent("lastmodified", asset.getLastModified());
-            ret.addContent("previewUrl", documentId);
-
-            if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
-              Long videoDuration = this.getLastValue(allProperties, "videoDuration", Long.class);
-
-              if (videoDuration != null) {
-                ret.addContent("duration", videoDuration);
-              }
-            }
-
-            if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
-              Long width = this.getLastValue(allProperties, "tiff:ImageWidth", Long.class);
-              Long height = this.getLastValue(allProperties, "tiff:ImageLength", Long.class);
-
-              if (width != null) {
-                ret.addContent("width", width);
-              }
-
-              if (height != null) {
-                ret.addContent("height", height);
-              }
-            }
-
-            // Retrieve ACLs from policy
-            try {
-              List<NodePermissionLevel> permissionLevels = new ArrayList<>();
-              ResourceResolver resourceResolver =
-                  resolverFactory.getAdministrativeResourceResolver(null);
-              Session adminSession = resourceResolver.adaptTo(Session.class);
-              UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-              List<Authorizable> authorizables = getAllAuthorizables(userManager);
-
-              Node node = adminSession.getNode(path);
-              int nodeLevel = 0;
-
-              while (node != null) {
-                Set<Permission> permissions = new HashSet<>();
-                if (node.hasNode("rep:policy")) {
-                  JsonObject policy = toJson(node.getNode("rep:policy"));
-                  if (policy != null) {
-                    List<Permission> acls = getAcls(policy, authorizables);
-                    if (acls != null && !acls.isEmpty()) {
-                      permissions.addAll(acls);
-                    }
-                  }
-                }
-
-                if (node.hasNode("rep:cugPolicy")) {
-                  JsonObject cugPolicy = toJson(node.getNode("rep:cugPolicy"));
-                  if (cugPolicy != null) {
-                    List<Permission> cugAcls =
-                        getCugAcls(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
-                    if (cugAcls != null && !cugAcls.isEmpty()) {
-                      permissions.addAll(cugAcls);
-                    }
-                  }
-                }
-
-                if (permissions.size() > 0) {
-                  List<Permission> nonDuplicatedPermissions = new ArrayList<>();
-                  nonDuplicatedPermissions.addAll(permissions);
-                  permissionLevels.add(
-                      new NodePermissionLevel(nodeLevel, nonDuplicatedPermissions));
-                  nodeLevel++;
-                }
-
-                try {
-                  node = node.getParent();
-                  if (node.getPath().equals("/") || node.getPath().equals("/content")) {
-                    node = null;
-                  }
-                } catch (ItemNotFoundException e) {
-                  node = null;
-                }
-              }
-
-              Type listType = new TypeToken<List<NodePermissionLevel>>() {}.getType();
-              String aclJson = new Gson().toJson(permissionLevels, listType);
-
-              ret.addContent("acl", aclJson);
-            } catch (Exception ex) {
-              LOG.error("error policy", ex);
-            }
+            ret.addContent(getDocumentContent(resolver, res, asset, path, documentId));
           }
 
-          ret.setDocumentId(documentId);
           return ret;
         }
         LOG.error("Could not adapt asset");
       }
     }
     return null;
+  }
+
+  private Map<String, Object> getDocumentContent(
+      ResourceResolver resolver, Resource res, Asset asset, String path, String documentId) {
+    Map<String, Object> mapContent = new HashMap<>();
+    String[] indexRules = getIndexRules(PRIMARY_TYPE_VALUE);
+
+    Map<String, Object> allProperties = getAllProperties(res);
+    mapContent.putAll(getProperties(res, indexRules));
+
+    // Extract additional properties from the Node
+    try {
+      Session session = resolver.adaptTo(Session.class);
+      Node node = session.getNode(path);
+      JsonObject content = toJson(node).getAsJsonObject("jcr:content");
+      if (content != null) {
+        Map<String, Object> allprops = getJsonProperties(content, indexRules);
+        mapContent.putAll(allprops);
+      }
+    } catch (Exception ex) {
+      LOG.error("Could not extract additionals properties from the node", ex);
+    }
+
+    if (this.getLastValue(allProperties, TITLE_FIELDNAME, String.class) != null) {
+      String title = this.getLastValue(allProperties, TITLE_FIELDNAME, String.class);
+      mapContent.put("title", title);
+    } else if (asset.getName() != null) {
+      mapContent.put("title", asset.getName());
+    }
+
+    if (this.getLastValue(allProperties, DESCRIPTION_FIELDNAME, String.class) != null) {
+      String desc = this.getLastValue(allProperties, DESCRIPTION_FIELDNAME, String.class);
+      if (desc == null || desc.equals("null")) {
+        desc = "";
+      }
+      mapContent.put("description", desc);
+    }
+
+    if (MimeTypes.Text.isText(asset.getMimeType()) != null
+        || MimeTypes.Image.isImage(asset.getMimeType()) != null
+        || MimeTypes.getType(asset.getMimeType()).isEmpty()) {
+      Rendition original = asset.getOriginal();
+      if (original != null) {
+        InputStream is = original.getStream();
+
+        if (is != null) {
+          String content = pushToFileContainer(is);
+          mapContent.put("fileId", content);
+        }
+      }
+
+    } else if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
+      String data =
+          getVideoData(
+              documentId,
+              asset.getMimeType(),
+              (String) mapContent.get("title"),
+              (String) mapContent.get("description"));
+
+      String content = Base64.getEncoder().encodeToString(data.getBytes());
+      mapContent.put("content", content);
+    }
+
+    if (StringUtils.isNotEmpty(MimeTypes.getType(asset.getMimeType()))) {
+      mapContent.put("documenttype", MimeTypes.getType(asset.getMimeType()));
+    }
+
+    if (this.getLastValue(res.getValueMap(), AUTHOR_FIELDNAME, String.class) != null) {
+      String author = this.getLastValue(res.getValueMap(), AUTHOR_FIELDNAME, String.class);
+      mapContent.put("author", author);
+    }
+
+    if (this.getLastValue(res.getValueMap(), CREATED_FIELDNAME, Long.class) != null) {
+      Long created = this.getLastValue(res.getValueMap(), CREATED_FIELDNAME, Long.class);
+      mapContent.put("created", created);
+    }
+
+    mapContent.put("lastmodified", asset.getLastModified());
+    mapContent.put("previewUrl", documentId);
+
+    if (MimeTypes.Video.isVideo(asset.getMimeType()) != null) {
+      Long videoDuration = this.getLastValue(allProperties, "videoDuration", Long.class);
+
+      if (videoDuration != null) {
+        mapContent.put("duration", videoDuration);
+      }
+    }
+
+    if (MimeTypes.Image.isImage(asset.getMimeType()) != null) {
+      Long width = this.getLastValue(allProperties, "tiff:ImageWidth", Long.class);
+      Long height = this.getLastValue(allProperties, "tiff:ImageLength", Long.class);
+
+      if (width != null) {
+        mapContent.put("width", width);
+      }
+
+      if (height != null) {
+        mapContent.put("height", height);
+      }
+    }
+
+    // Retrieve ACLs from policy
+    try {
+      ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+      Session adminSession = resourceResolver.adaptTo(Session.class);
+      UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+      List<Authorizable> authorizables = getAllAuthorizables(userManager);
+
+      Node node = adminSession.getNode(path);
+      List<NodePermissionLevel> permLevels = getPermissionLevelList(node, authorizables);
+
+      Type listType =
+          new TypeToken<List<NodePermissionLevel>>() {
+            private static final long serialVersionUID = 8901050930521733762L;
+          }.getType();
+      String aclJson = new Gson().toJson(permLevels, listType);
+
+      mapContent.put("acl", aclJson);
+    } catch (Exception ex) {
+      LOG.error("Error getting Permissions for asset " + path, ex);
+    }
+
+    return mapContent;
   }
 
   @Override

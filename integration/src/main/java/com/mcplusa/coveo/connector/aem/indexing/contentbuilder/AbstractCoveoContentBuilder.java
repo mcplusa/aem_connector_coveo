@@ -7,6 +7,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
 import java.io.StringWriter;
@@ -255,6 +256,61 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     }
 
     return false;
+  }
+
+  protected List<NodePermissionLevel> getPermissionLevelList(
+      Node node, List<Authorizable> authorizables) {
+    List<NodePermissionLevel> permissionLevels = new ArrayList<>();
+    int nodeLevel = 0;
+
+    while (node != null) {
+      try {
+        Set<Permission> permissions = new HashSet<>();
+        if (node.hasNode("rep:policy")) {
+          JsonObject policy = toJson(node.getNode("rep:policy"));
+          if (policy != null) {
+            List<Permission> acls = getAcls(policy, authorizables);
+            permissions.addAll(acls);
+          }
+        }
+
+        if (node.hasNode("rep:cugPolicy")) {
+          JsonObject cugPolicy = toJson(node.getNode("rep:cugPolicy"));
+          if (cugPolicy != null) {
+            List<Permission> cugAcls =
+                getCugAcls(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
+            permissions.addAll(cugAcls);
+          }
+        }
+
+        if (!permissions.isEmpty()) {
+          List<Permission> nonDuplicatedPermissions = new ArrayList<>();
+          nonDuplicatedPermissions.addAll(permissions);
+          permissionLevels.add(new NodePermissionLevel(nodeLevel, nonDuplicatedPermissions));
+          nodeLevel++;
+        }
+
+        node = getNodeParent(node);
+      } catch (RepositoryException ex) {
+        LOG.error("Error getting permission level list", ex);
+        node = null;
+      }
+    }
+
+    return permissionLevels;
+  }
+
+  private Node getNodeParent(Node node) {
+    try {
+      Node parentNode = node.getParent();
+      if (parentNode.getPath().equals("/") || parentNode.getPath().equals("/content")) {
+        return null;
+      }
+
+      return parentNode;
+    } catch (RepositoryException e) {
+      return null;
+    }
   }
 
   /**
