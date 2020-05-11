@@ -7,5 +7,4 @@ import org.apache.sling.api.resource.ResourceResolver;
 public interface CoveoContentBuilder {
 
   public IndexEntry create(String path, @Nonnull ResourceResolver resolver, boolean includeContent);
-
 }

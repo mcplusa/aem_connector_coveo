@@ -33,7 +33,6 @@ import com.mcplusa.coveo.sdk.pushapi.model.PermissionLevelsModel;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionModel;
 import com.mcplusa.coveo.sdk.pushapi.model.PermissionsSetsModel;
 import com.mcplusa.coveo.sdk.pushapi.model.PushAPIStatus;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -60,56 +58,71 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * TransportHandler Implementation that posts a ReplicationContent created by
- * {@link CoveoIndexContentBuilder} to a configured Coveo.
+ * TransportHandler Implementation that posts a ReplicationContent created by {@link
+ * CoveoIndexContentBuilder} to a configured Coveo.
  */
 @Service(TransportHandler.class)
 @Component(label = "Coveo Index Agent", immediate = true, enabled = true)
 @Properties(@Property(name = Constants.SERVICE_RANKING, intValue = 1000))
 public class CoveoTransportHandler implements TransportHandler {
 
-  @Reference
-  protected AgentManager agentManager;
+  @Reference protected AgentManager agentManager;
 
-  @Reference
-  protected CoveoQueueService coveoQueueService;
+  @Reference protected CoveoQueueService coveoQueueService;
 
-  @Reference
-  protected CoveoService coveoService;
+  @Reference protected CoveoService coveoService;
 
   private static final Logger LOG = LoggerFactory.getLogger(CoveoTransportHandler.class);
   private static final String REPLICATION_ERROR_MSG = "Replication failed";
-  private static final String AGENT_NOT_FOUND = "The Agent can not be found. Check that agentId is configured properly in the Coveo Provider settings.";
+  private static final String AGENT_NOT_FOUND =
+      "The Agent can not be found. Check if agentId is configured properly in the Coveo Provider.";
   private static final String NO_REPLICATION_CONTENT = "No Replication Content provided";
 
+  private static final String TITLE_FIELDNAME = "title";
+  private static final String AUTHOR_FIELDNAME = "author";
+  private static final String COMPRESSEDBINARYDATA_FIELDNAME = "CompressedBinaryData";
+  private static final String COMPRESSEDBINARYDATAFILEID_FIELDNAME = "compressedBinaryDataFileId";
+  private static final String DOCUMENT_TYPE_FIELDNAME = "documenttype";
+  private static final String ACL_FIELDNAME = "acl";
+
   /**
+   * Checks if Service will accept the replication.
    *
    * @param config AgentConfig
    * @return only accept if the serializationType is "coveo"
    */
   @Override
   public boolean canHandle(AgentConfig config) {
-    return StringUtils.equalsIgnoreCase(config.getSerializationType(), CoveoIndexContentBuilder.NAME);
+    return StringUtils.equalsIgnoreCase(
+        config.getSerializationType(), CoveoIndexContentBuilder.NAME);
   }
 
   /**
+   * Deliver the replication and return an ReplicationResult.
    *
    * @param ctx TransportContext
-   * @param tx  ReplicationTransaction
+   * @param tx ReplicationTransaction
    * @return ReplicationResult
-   * @throws ReplicationException will add a log and skip the replication for this
-   *                              item
+   * @throws ReplicationException will add a log and skip the replication for this item
    */
   @Override
-  public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx) throws ReplicationException {
+  public ReplicationResult deliver(TransportContext ctx, ReplicationTransaction tx)
+      throws ReplicationException {
     ReplicationLog log = tx.getLog();
 
     // Check if agent is configured.
     Agent agent = agentManager.getAgents().get(coveoQueueService.getAgentId());
     if (agent == null) {
-      log.error(getClass().getSimpleName() + ": " + AGENT_NOT_FOUND + " current agentId: '" + coveoQueueService.getAgentId() + "'");
+      log.error(
+          getClass().getSimpleName()
+              + ": "
+              + AGENT_NOT_FOUND
+              + " current agentId: '"
+              + coveoQueueService.getAgentId()
+              + "'");
       LOG.error("{} current agentId: '{}'", AGENT_NOT_FOUND, coveoQueueService.getAgentId());
-      return new ReplicationResult(false, 0, AGENT_NOT_FOUND + " current agentId: '" + coveoQueueService.getAgentId() + "'");
+      return new ReplicationResult(
+          false, 0, AGENT_NOT_FOUND + " current agentId: '" + coveoQueueService.getAgentId() + "'");
     }
 
     if (isFirstEntryOfBatch()) {
@@ -117,8 +130,14 @@ public class CoveoTransportHandler implements TransportHandler {
     }
     try {
       CoveoPushClient pushClient = coveoService.getClient();
-      log.debug(getClass().getSimpleName() + ": Using host: " + pushClient.getHost() + " org: "
-          + pushClient.getOrganizationId() + " source: " + pushClient.getSourceId());
+      log.debug(
+          getClass().getSimpleName()
+              + ": Using host: "
+              + pushClient.getHost()
+              + " org: "
+              + pushClient.getOrganizationId()
+              + " source: "
+              + pushClient.getSourceId());
       ReplicationActionType replicationType = tx.getAction().getType();
       log.debug(getClass().getSimpleName() + ": replicationType " + replicationType.toString());
       if (replicationType == ReplicationActionType.TEST) {
@@ -154,7 +173,10 @@ public class CoveoTransportHandler implements TransportHandler {
       updateSourceStatus(PushAPIStatus.IDLE, log);
       pushToFileContainer(log);
 
-      log.error(getClass().getSimpleName() + ": Could not perform Indexing due to " + ioe.getLocalizedMessage());
+      log.error(
+          getClass().getSimpleName()
+              + ": Could not perform Indexing due to "
+              + ioe.getLocalizedMessage());
       LOG.error("Could not perform Indexing", ioe);
       return new ReplicationResult(false, 0, ioe.getLocalizedMessage());
     }
@@ -176,11 +198,13 @@ public class CoveoTransportHandler implements TransportHandler {
       }
 
     } else {
-      return new ReplicationResult(true, 0, NO_REPLICATION_CONTENT + " for path " + tx.getAction().getPath());
+      return new ReplicationResult(
+          true, 0, NO_REPLICATION_CONTENT + " for path " + tx.getAction().getPath());
     }
   }
 
-  private ReplicationResult doDeactivate(TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
+  private ReplicationResult doDeactivate(
+      TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
       throws ReplicationException, JSONException, IOException {
     ReplicationLog log = tx.getLog();
     log.info(getClass().getSimpleName() + ": Deleting... " + tx.getContent().getContentType());
@@ -196,8 +220,12 @@ public class CoveoTransportHandler implements TransportHandler {
         updateSourceStatus(PushAPIStatus.IDLE, log);
         CoveoResponse batchResponse = pushToFileContainer(log);
         LOG.debug(batchResponse.toString());
-        log.info(getClass().getSimpleName() + ": Delete Call returned " + batchResponse.getStatusLine().getStatusCode()
-            + ": " + batchResponse.getStatusLine().getReasonPhrase());
+        log.info(
+            getClass().getSimpleName()
+                + ": Delete Call returned "
+                + batchResponse.getStatusLine().getStatusCode()
+                + ": "
+                + batchResponse.getStatusLine().getReasonPhrase());
 
         if (batchResponse.getStatusLine().getStatusCode() == HttpStatus.SC_ACCEPTED) {
           return ReplicationResult.OK;
@@ -218,17 +246,17 @@ public class CoveoTransportHandler implements TransportHandler {
   }
 
   /**
-   * Perform the replication. All logic is covered in
-   * {@link CoveoIndexContentBuilder} so we only need to transmit the Document to
-   * Coveo
+   * Perform the replication. All logic is covered in {@link CoveoIndexContentBuilder} so we only
+   * need to transmit the Document to Coveo
    *
-   * @param ctx        TransportContext
-   * @param tx         ReplicationTransaction
+   * @param ctx TransportContext
+   * @param tx ReplicationTransaction
    * @param restClient CoveoPushClient
    * @return ReplicationResult
    * @throws ReplicationException if an error occurs.
    */
-  private ReplicationResult doActivate(TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
+  private ReplicationResult doActivate(
+      TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
       throws ReplicationException, JSONException, IOException {
     ReplicationLog log = tx.getLog();
     ObjectMapper mapper = new ObjectMapper();
@@ -268,21 +296,28 @@ public class CoveoTransportHandler implements TransportHandler {
   /**
    * Test Connection to Coveo.
    *
-   * @param ctx        TransportContext
-   * @param tx         ReplicationTransaction
+   * @param ctx TransportContext
+   * @param tx ReplicationTransaction
    * @param restClient CoveoPushClient
    * @return ReplicationResult
-   * @throws ReplicationException
+   * @throws ReplicationException if an error occurs.
    */
-  private ReplicationResult doTest(TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
+  private ReplicationResult doTest(
+      TransportContext ctx, ReplicationTransaction tx, CoveoPushClient pushClient)
       throws ReplicationException, IOException {
     ReplicationLog log = tx.getLog();
     CoveoResponse testResponse = pushClient.ping();
     log.info(getClass().getSimpleName() + ": ---------------------------------------");
-    log.info(getClass().getSimpleName() + ": " + testResponse.getStatusLine().getStatusCode() + ": "
-        + testResponse.getStatusLine().getReasonPhrase());
+    log.info(
+        getClass().getSimpleName()
+            + ": "
+            + testResponse.getStatusLine().getStatusCode()
+            + ": "
+            + testResponse.getStatusLine().getReasonPhrase());
     if (testResponse.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
-      log.info(getClass().getSimpleName() + ": The connection to Coveo has been successfully established.");
+      log.info(
+          getClass().getSimpleName()
+              + ": The connection to Coveo has been successfully established.");
       return ReplicationResult.OK;
     } else {
       log.info(getClass().getSimpleName() + ": The connection could not be established to Coveo.");
@@ -294,17 +329,23 @@ public class CoveoTransportHandler implements TransportHandler {
     String documentId = indexEntry.getContent("documentId", String.class);
     Document doc = new Document(documentId);
 
-    if (indexEntry.getContent("title", String.class) != null) {
-      doc.setTitle(indexEntry.getContent("title", String.class));
+    if (indexEntry.getContent(TITLE_FIELDNAME, String.class) != null) {
+      doc.setTitle(indexEntry.getContent(TITLE_FIELDNAME, String.class));
     }
 
     Map<String, Object> valuesMap = new HashMap<>();
 
-    indexEntry.getContent().keySet().stream().filter(key -> indexEntry.getContent().get(key) != null).forEach(key -> {
-      if (!key.equals("content") && !key.equals("documentid") && !key.equals("title") && !key.equals("acl")) {
-        valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
-      }
-    });
+    indexEntry.getContent().keySet().stream()
+        .filter(key -> indexEntry.getContent().get(key) != null)
+        .forEach(
+            key -> {
+              if (!key.equals("content")
+                  && !key.equals("documentid")
+                  && !key.equals(TITLE_FIELDNAME)
+                  && !key.equals(ACL_FIELDNAME)) {
+                valuesMap.put(cleanFieldName(key), indexEntry.getContent().get(key));
+              }
+            });
     doc.setMetadata(valuesMap);
 
     if (indexEntry.getContent("lastmodified", Long.class) != null) {
@@ -315,8 +356,9 @@ public class CoveoTransportHandler implements TransportHandler {
       doc.addMetadata("createddate", indexEntry.getContent("created", Long.class), Long.class);
     }
 
-    if (indexEntry.getContent("author", String.class) != null) {
-      doc.addMetadata("author", indexEntry.getContent("author", String.class), String.class);
+    if (indexEntry.getContent(AUTHOR_FIELDNAME, String.class) != null) {
+      doc.addMetadata(
+          AUTHOR_FIELDNAME, indexEntry.getContent(AUTHOR_FIELDNAME, String.class), String.class);
     }
 
     Optional<String> extension = getExtension(documentId);
@@ -324,57 +366,28 @@ public class CoveoTransportHandler implements TransportHandler {
       doc.setFileExtension(extension.get());
     }
 
-    if (StringUtils.isNotEmpty(indexEntry.getContent("documenttype", String.class))) {
-      doc.addMetadata("documenttype", indexEntry.getContent("documenttype", String.class), String.class);
-      doc.addMetadata("filetype", indexEntry.getContent("documenttype", String.class), String.class);
+    if (StringUtils.isNotEmpty(indexEntry.getContent(DOCUMENT_TYPE_FIELDNAME, String.class))) {
+      String documentType = indexEntry.getContent(DOCUMENT_TYPE_FIELDNAME, String.class);
+      doc.addMetadata(DOCUMENT_TYPE_FIELDNAME, documentType, String.class);
+      doc.addMetadata("filetype", documentType, String.class);
     }
 
     String data = indexEntry.getContent("content", String.class);
     if (data != null) {
       doc.setCompressionType(CompressionType.UNCOMPRESSED);
-      doc.addMetadata("CompressedBinaryData", data, String.class);
+      doc.addMetadata(COMPRESSEDBINARYDATA_FIELDNAME, data, String.class);
     }
 
     String fileId = indexEntry.getContent("fileId", String.class);
     if (StringUtils.isNotEmpty(fileId)) {
       doc.setCompressionType(CompressionType.UNCOMPRESSED);
-      doc.addMetadata("compressedBinaryDataFileId", fileId, String.class);
+      doc.addMetadata(COMPRESSEDBINARYDATAFILEID_FIELDNAME, fileId, String.class);
     }
 
     // Implement permission
-    List<PermissionModel> permissions = new ArrayList<>();
-    String aclJson = indexEntry.getContent("acl", String.class);
+    String aclJson = indexEntry.getContent(ACL_FIELDNAME, String.class);
     if (aclJson != null) {
-      Type listType = new TypeToken<List<NodePermissionLevel>>() {
-      }.getType();
-      List<NodePermissionLevel> acl = new Gson().fromJson(aclJson, listType);
-      if (acl != null) {
-        List<NodePermissionLevel> aclOrdered = acl.stream().sorted((a, b) -> a.getNodeLevel() - b.getNodeLevel())
-            .collect(Collectors.toList());
-        for (NodePermissionLevel nodePermission : aclOrdered) {
-          PermissionLevelsModel permissionLevel = new PermissionLevelsModel(
-              "Permission Level " + (nodePermission.getNodeLevel() + 1));
-
-          PermissionsSetsModel psm = new PermissionsSetsModel();
-          for (Permission permission : nodePermission.getPermissions()) {
-            IdentityType identityType = permission.isGroup() ? IdentityType.VIRTUAL_GROUP : IdentityType.USER;
-            String identityProvider = permission.isGroup() ? this.coveoService.getGroupIdentityProvider()
-                : this.coveoService.getUserIdentityProvider();
-
-            if (permission.getType() == Permission.PERMISSION_TYPE.ALLOW) {
-              psm.addAllowedPermission(
-                  new IdentityModel(permission.getPrincipalName(), identityType, identityProvider));
-            } else {
-              psm.addDeniedPermission(new IdentityModel(permission.getPrincipalName(), identityType, identityProvider));
-            }
-          }
-
-          psm.setAllowAnonymous(acl == null || acl.isEmpty());
-
-          permissionLevel.addPermissionSet(psm);
-          permissions.add(permissionLevel);
-        }
-      }
+      List<PermissionModel> permissions = extractPermissions(aclJson);
 
       doc.setPermissions(permissions);
 
@@ -387,15 +400,62 @@ public class CoveoTransportHandler implements TransportHandler {
     return doc;
   }
 
+  private List<PermissionModel> extractPermissions(String aclJson) {
+    List<PermissionModel> permissions = new ArrayList<>();
+    Type listType =
+        new TypeToken<List<NodePermissionLevel>>() {
+          private static final long serialVersionUID = -8061055707344967221L;
+        }.getType();
+    List<NodePermissionLevel> acl = new Gson().fromJson(aclJson, listType);
+
+    if (acl == null) {
+      return permissions;
+    }
+
+    List<NodePermissionLevel> aclOrdered =
+        acl.stream()
+            .sorted((a, b) -> a.getNodeLevel() - b.getNodeLevel())
+            .collect(Collectors.toList());
+    for (NodePermissionLevel nodePermission : aclOrdered) {
+      PermissionLevelsModel permissionLevel =
+          new PermissionLevelsModel("Permission Level " + (nodePermission.getNodeLevel() + 1));
+
+      PermissionsSetsModel psm = new PermissionsSetsModel();
+      for (Permission permission : nodePermission.getPermissions()) {
+        IdentityType identityType = IdentityType.USER;
+        String identityProvider = this.coveoService.getUserIdentityProvider();
+        if (permission.isGroup()) {
+          identityType = IdentityType.VIRTUAL_GROUP;
+          identityProvider = this.coveoService.getGroupIdentityProvider();
+        }
+
+        IdentityModel identity =
+            new IdentityModel(permission.getPrincipalName(), identityType, identityProvider);
+
+        if (permission.getType() == Permission.PERMISSION_TYPE.ALLOW) {
+          psm.addAllowedPermission(identity);
+        } else {
+          psm.addDeniedPermission(identity);
+        }
+      }
+
+      psm.setAllowAnonymous(false);
+
+      permissionLevel.addPermissionSet(psm);
+      permissions.add(permissionLevel);
+    }
+    return permissions;
+  }
+
   /**
    * Extract the extension from URI.
    *
    * @param uri URI that should contain the file extension
-   * @return Optional that contains the extension, it will be empty if the URI
-   *         doesn't contains an extension
+   * @return Optional that contains the extension, it will be empty if the URI doesn't contains an
+   *     extension
    */
   private Optional<String> getExtension(String uri) {
-    int extensionIndex = uri.lastIndexOf(".");
+    int extensionIndex = uri.lastIndexOf('.');
     if (extensionIndex > 0) {
       return Optional.of(uri.substring(extensionIndex));
     }
@@ -404,24 +464,26 @@ public class CoveoTransportHandler implements TransportHandler {
   }
 
   /**
-   * Removes all special characters, only allow lowercase letters (a-z), numbers
-   * (0-9), and underscores.
+   * Removes all special characters, only allow lowercase letters (a-z), numbers (0-9), and
+   * underscores.
    *
-   * @param fieldName
+   * @param fieldName value to be "cleaned"
    * @return a valid field name for Coveo
    */
   private String cleanFieldName(String fieldName) {
     String regexWhitespaces = "\\s+";
     String regexSpecialCharacters = "\\W";
-    return fieldName.replaceAll(regexWhitespaces, "_").replaceAll(regexSpecialCharacters, "").toLowerCase();
+    return fieldName
+        .replaceAll(regexWhitespaces, "_")
+        .replaceAll(regexSpecialCharacters, "")
+        .toLowerCase();
   }
 
   /**
-   * Perform the source status update. it adds logs for both successful and error
-   * responses.
+   * Perform the source status update. it adds logs for both successful and error responses.
    *
    * @param status PushAPIStatus
-   * @param log    ReplicationLog
+   * @param log ReplicationLog
    */
   private void updateSourceStatus(PushAPIStatus status, ReplicationLog log) {
     CoveoPushClient pushClient = coveoService.getClient();
@@ -430,11 +492,17 @@ public class CoveoTransportHandler implements TransportHandler {
       if (updateResponse.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
         log.debug(getClass().getSimpleName() + ": Source Status updated to " + status.toString());
       } else {
-        log.error(getClass().getSimpleName() + ": Could not update the Source status to " + status.toString());
-        LOG.error("Could not update the Source status to " + status.toString());
+        log.error(
+            getClass().getSimpleName()
+                + ": Could not update the Source status to "
+                + status.toString());
+        LOG.error("Could not update the Source status to {}", status);
       }
     } catch (IOException e) {
-      log.error(getClass().getSimpleName() + ": Exception: Could not update the Source status to " + status.toString());
+      log.error(
+          getClass().getSimpleName()
+              + ": Exception: Could not update the Source status to "
+              + status.toString());
       LOG.error("Exception: Could not update the Source status to " + status.toString(), e);
     }
   }
@@ -442,9 +510,9 @@ public class CoveoTransportHandler implements TransportHandler {
   private String printDocument(Document doc) {
     Gson gson = new Gson();
     JsonObject document = gson.fromJson(doc.toJson(), JsonObject.class);
-    JsonElement data = document.get("CompressedBinaryData");
+    JsonElement data = document.get(COMPRESSEDBINARYDATA_FIELDNAME);
     if (data != null && data.getAsString().length() > 1000) {
-      document.addProperty("CompressedBinaryData", data.getAsString().substring(0, 1000));
+      document.addProperty(COMPRESSEDBINARYDATA_FIELDNAME, data.getAsString().substring(0, 1000));
     }
 
     return document.toString();
@@ -463,7 +531,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
   /**
    * Check if is the first entry of the queue.
-   * 
+   *
    * @return true if is the first entry.
    */
   private boolean isFirstEntryOfBatch() {
@@ -485,8 +553,8 @@ public class CoveoTransportHandler implements TransportHandler {
 
   /**
    * Check if is the last entry of the queue.
-   * 
-   * @return Optional will contain the queue name if it is the last entry
+   *
+   * @return true if its the last entry
    */
   private boolean isLastEntryOfBatch() {
     Optional<ReplicationQueue> queue = getReplicationQueue();
@@ -504,7 +572,7 @@ public class CoveoTransportHandler implements TransportHandler {
 
   /**
    * Get a FileContainer and push the batch file to the S3 instance.
-   * 
+   *
    * @param batchRequest contains the list of documents to add/update/delete.
    * @return the fileId of the FileContainer.
    */
