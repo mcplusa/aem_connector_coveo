@@ -91,6 +91,12 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
             return createReplicationContent(
                 factory, builder.create(path, resolver, includeContent));
           }
+        } else {
+          // Deleted content
+          CoveoContentBuilder builder = getContentBuilder("dam:Asset", log);
+          if (builder != null) {
+            return createReplicationContent(factory, builder.createDeletedItem(path, resolver));
+          }
         }
       } catch (LoginException e) {
         log.error("Could not retrieve Page Manager", e);
