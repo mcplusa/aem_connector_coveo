@@ -144,13 +144,14 @@ public class CoveoTransportHandler implements TransportHandler {
         return doTest(ctx, tx, pushClient);
       } else {
         log.info(getClass().getSimpleName() + ": ---------------------------------------");
-        if (tx.getContent() == ReplicationContent.VOID) {
+        if (tx.getContent() == ReplicationContent.VOID && replicationType != ReplicationActionType.DELETE) {
           return doVoid(tx);
         }
         switch (replicationType) {
           case ACTIVATE:
             return doActivate(ctx, tx, pushClient);
           case DELETE:
+            return doDeactivate(ctx, tx, pushClient);
           case DEACTIVATE:
             return doDeactivate(ctx, tx, pushClient);
           default:
