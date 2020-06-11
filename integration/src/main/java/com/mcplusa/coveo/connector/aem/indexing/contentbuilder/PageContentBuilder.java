@@ -86,6 +86,19 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
     return null;
   }
 
+  @Override
+  public IndexEntry createDeletedItem(String path, ResourceResolver resolver) {
+    Externalizer externalizer = resolver.adaptTo(Externalizer.class);
+    String documentId = path;
+    if (externalizer != null) {
+      documentId = externalizer.publishLink(resolver, path);
+    }
+    IndexEntry ret = new IndexEntry("idx", "document", path);
+    ret.setDocumentId(documentId);
+
+    return ret;
+  }
+
   private Map<String, Object> getDocumentContent(
       ResourceResolver resolver, Resource res, Page page, String path) {
     Map<String, Object> mapContent = new HashMap<>();
