@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import com.day.cq.contentsync.handler.util.RequestResponseFactory;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.contentbuilder.PageContentBuilder;
+import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.connector.aem.testcontext.AppAemContext;
 import io.wcm.testing.mock.aem.junit.AemContext;
 import java.lang.reflect.Field;
@@ -110,6 +111,10 @@ public class PageContentBuilderTest {
       Field field3 = PageContentBuilder.class.getDeclaredField("resolverFactory");
       field3.setAccessible(true);
       field3.set(instance, Mockito.mock(ResourceResolverFactory.class));
+
+      Field coveoServiceField = PageContentBuilder.class.getDeclaredField("coveoService");
+      coveoServiceField.setAccessible(true);
+      coveoServiceField.set(instance, Mockito.mock(CoveoService.class));
     } catch (NoSuchFieldException
         | SecurityException
         | IllegalArgumentException
