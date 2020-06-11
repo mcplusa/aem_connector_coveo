@@ -10,6 +10,8 @@ import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
+import com.mcplusa.coveo.connector.aem.service.CoveoHostConfiguration;
+
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +49,8 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
   private TagManager tagManager;
 
   private BundleContext context;
+
+  protected String permissionPolicy;
 
   @Activate
   public void activate(BundleContext context) {
@@ -258,6 +262,11 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     return false;
   }
 
+  private boolean shouldAddPermissionPolicy(String policy) {
+    return this.permissionPolicy == null || this.permissionPolicy.equals("ALL")
+        || this.permissionPolicy.equalsIgnoreCase(policy);
+  }
+
   protected List<NodePermissionLevel> getPermissionLevelList(
       Node node, List<Authorizable> authorizables) {
     List<NodePermissionLevel> permissionLevels = new ArrayList<>();
@@ -266,7 +275,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     while (node != null) {
       try {
         Set<Permission> permissions = new HashSet<>();
-        if (node.hasNode("rep:policy")) {
+        if (shouldAddPermissionPolicy("POLICY") && node.hasNode("rep:policy")) {
           JsonObject policy = toJson(node.getNode("rep:policy"));
           if (policy != null) {
             List<Permission> acls = getAcls(policy, authorizables);
@@ -274,7 +283,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
           }
         }
 
-        if (node.hasNode("rep:cugPolicy")) {
+        if (shouldAddPermissionPolicy("CUG") && node.hasNode("rep:cugPolicy")) {
           JsonObject cugPolicy = toJson(node.getNode("rep:cugPolicy"));
           if (cugPolicy != null) {
             List<Permission> cugAcls =
