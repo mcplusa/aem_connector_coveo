@@ -17,6 +17,7 @@ import com.mcplusa.coveo.sdk.pushapi.model.FileContainerResponse;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.Base64;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,19 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     return null;
   }
 
+  @Override
+  public IndexEntry createDeletedItem(String path, ResourceResolver resolver) {
+    Externalizer externalizer = resolver.adaptTo(Externalizer.class);
+    String documentId = path;
+    if (externalizer != null) {
+      documentId = externalizer.publishLink(resolver, path);
+    }
+    IndexEntry ret = new IndexEntry("idx", "document", path);
+    ret.setDocumentId(documentId);
+
+    return ret;
+  }
+
   private Map<String, Object> getDocumentContent(
       ResourceResolver resolver, Resource res, Asset asset, String path, String documentId) {
     Map<String, Object> mapContent = new HashMap<>();
@@ -162,8 +176,8 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
       mapContent.put("author", author);
     }
 
-    if (this.getLastValue(res.getValueMap(), CREATED_FIELDNAME, Long.class) != null) {
-      Long created = this.getLastValue(res.getValueMap(), CREATED_FIELDNAME, Long.class);
+    if (this.getLastValue(res.getValueMap(), CREATED_FIELDNAME, GregorianCalendar.class) != null) {
+      GregorianCalendar created = this.getLastValue(res.getValueMap(), CREATED_FIELDNAME, GregorianCalendar.class);
       mapContent.put("created", created);
     }
 
