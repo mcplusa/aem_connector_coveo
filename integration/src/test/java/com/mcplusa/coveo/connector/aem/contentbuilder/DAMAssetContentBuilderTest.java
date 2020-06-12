@@ -5,12 +5,20 @@ import static org.junit.Assert.assertNotNull;
 
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.contentbuilder.DAMAssetContentBuilder;
+import com.mcplusa.coveo.connector.aem.service.CoveoService;
 import com.mcplusa.coveo.connector.aem.testcontext.AppAemContext;
 import io.wcm.testing.mock.aem.junit.AemContext;
+
+import java.lang.reflect.Field;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.Base64;
+
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -22,6 +30,7 @@ public class DAMAssetContentBuilderTest {
   public void testCreateVideo() {
     AppAemContext.loadVideoSampleContent(context);
     DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+    mockReferences(builder);
 
     IndexEntry entry = builder.create(AppAemContext.VIDEO, context.resourceResolver(), true);
     assertNotNull(entry);
@@ -48,6 +57,7 @@ public class DAMAssetContentBuilderTest {
   public void testCreateVideoWithoutContent() {
     AppAemContext.loadVideoSampleContent(context);
     DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+    mockReferences(builder);
 
     boolean includeContent = false;
     IndexEntry entry =
@@ -68,6 +78,7 @@ public class DAMAssetContentBuilderTest {
   public void testCreateImage() {
     AppAemContext.loadImageSampleContent(context);
     DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+    mockReferences(builder);
 
     IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver(), true);
     assertNotNull(entry);
@@ -85,6 +96,7 @@ public class DAMAssetContentBuilderTest {
   public void testCreatePdf() {
     AppAemContext.loadPdfSampleContent(context);
     DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+    mockReferences(builder);
 
     IndexEntry entry = builder.create(AppAemContext.PDF, context.resourceResolver(), true);
     assertNotNull(entry);
@@ -108,10 +120,28 @@ public class DAMAssetContentBuilderTest {
             return new String[] {"dc:title", "jcr:lastModified", "jcr:lastModified"};
           }
         };
+    mockReferences(builder);
 
     IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver(), true);
     assertNotNull(entry);
     assertEquals(AppAemContext.IMAGE, entry.getPath());
     assertEquals("asset", entry.getType());
+  }
+
+  private void mockReferences(DAMAssetContentBuilder instance) {
+    try {
+      Field resolverFactoryField = DAMAssetContentBuilder.class.getDeclaredField("resolverFactory");
+      resolverFactoryField.setAccessible(true);
+      resolverFactoryField.set(instance, Mockito.mock(ResourceResolverFactory.class));
+
+      Field coveoServiceField = DAMAssetContentBuilder.class.getDeclaredField("coveoService");
+      coveoServiceField.setAccessible(true);
+      coveoServiceField.set(instance, Mockito.mock(CoveoService.class));
+    } catch (NoSuchFieldException
+        | SecurityException
+        | IllegalArgumentException
+        | IllegalAccessException ex) {
+      Logger.getLogger(DAMAssetContentBuilder.class.getName()).log(Level.SEVERE, null, ex);
+    }
   }
 }

@@ -55,6 +55,9 @@ public class CoveoService {
   @Getter
   protected String groupIdentityProvider;
 
+  @Getter
+  protected String permissionPolicy;
+
   @Activate
   public void activate(ComponentContext context) {
     CoveoEnvironment environment = CoveoEnvironment.valueOf(config.getEnvironment());
@@ -62,6 +65,7 @@ public class CoveoService {
     client = factory.newPushClient(config.getAccessToken(), config.getOrganizationId(), config.getSourceId());
     userIdentityProvider = config.getUserIdentityProvider();
     groupIdentityProvider = config.getGroupIdentityProvider();
+    permissionPolicy = config.getPermissionPolicy();
     createIdentityProvider();
   }
 
