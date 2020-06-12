@@ -445,6 +445,16 @@ public class CoveoTransportHandler implements TransportHandler {
       permissionLevel.addPermissionSet(psm);
       permissions.add(permissionLevel);
     }
+
+
+    if (permissions != null && permissions.isEmpty()) {
+      PermissionLevelsModel permissionLevel = new PermissionLevelsModel("Permission Level 1");
+      PermissionsSetsModel psm = new PermissionsSetsModel();
+      psm.setAllowAnonymous(true);
+      permissionLevel.addPermissionSet(psm);
+      permissions.add(permissionLevel);
+    }
+
     return permissions;
   }
 
