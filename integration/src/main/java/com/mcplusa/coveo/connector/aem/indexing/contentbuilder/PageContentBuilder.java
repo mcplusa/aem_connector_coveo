@@ -11,6 +11,8 @@ import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.IndexEntry;
 import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
+import com.mcplusa.coveo.connector.aem.service.CoveoService;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -51,6 +53,9 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
 
   @Reference private SlingRequestProcessor requestProcessor;
 
+  @Reference
+  protected CoveoService coveoService;
+
   public static final String PRIMARY_TYPE_VALUE = "cq:Page";
 
   private static final Logger LOG = LoggerFactory.getLogger(PageContentBuilder.class);
@@ -64,6 +69,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
     Externalizer externalizer = resolver.adaptTo(Externalizer.class);
     PageManager pageManager = resolver.adaptTo(PageManager.class);
     setTagManager(resolver.adaptTo(TagManager.class));
+    this.permissionPolicy = coveoService.getPermissionPolicy();
     if (pageManager != null) {
       Page page = pageManager.getPage(path);
       if (page != null) {

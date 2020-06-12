@@ -47,6 +47,13 @@ public class CoveoHostConfiguration {
   @Property(name = "groupIdentityProvider", label = "Groups Identity Provider", value = "group-identity-provider", description = "Identity Provider for Groups")
   public static final String PROPERTY_GROUP_IDENTITY_PROVIDER = "groupIdentityProvider";
 
+  private static final String PROPERTY_PERMISSION_POLICY_DEFAULT = "ALL";
+  @Property(name = "permissionPolicy", label = "Permission Policy", value = PROPERTY_PERMISSION_POLICY_DEFAULT, options = {
+      @PropertyOption(name = "ALL", value = "All"),
+      @PropertyOption(name = "CUG", value = "Closed User Group Policy"),
+      @PropertyOption(name = "POLICY", value = "Local Access Control Policy") })
+  public static final String PROPERTY_PERMISSION_POLICY = "permissionPolicy";
+
   @Getter
   protected String organizationId;
 
@@ -71,6 +78,9 @@ public class CoveoHostConfiguration {
   @Getter
   protected String aemIdentityProvider;
 
+  @Getter
+  protected String permissionPolicy;
+
   protected ComponentContext context;
 
   @Activate
@@ -84,5 +94,6 @@ public class CoveoHostConfiguration {
     this.userIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_USER_IDENTITY_PROVIDER), null);
     this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
     this.aemIdentityProvider = "aem-security-identity";
+    this.permissionPolicy = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_PERMISSION_POLICY), CoveoHostConfiguration.PROPERTY_PERMISSION_POLICY_DEFAULT);
   }
 }

@@ -47,9 +47,11 @@ import org.slf4j.LoggerFactory;
     value = DAMAssetContentBuilder.PRIMARY_TYPE_VALUE)
 public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
 
-  @Reference ResourceResolverFactory resolverFactory;
+  @Reference
+  ResourceResolverFactory resolverFactory;
 
-  @Reference protected CoveoService coveoService;
+  @Reference
+  protected CoveoService coveoService;
 
   private static final Logger LOG = LoggerFactory.getLogger(DAMAssetContentBuilder.class);
   private static final String TITLE_FIELDNAME = "dc:title";
@@ -70,6 +72,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     if (ArrayUtils.isNotEmpty(indexRules)) {
       Externalizer externalizer = resolver.adaptTo(Externalizer.class);
       Resource res = resolver.getResource(path);
+      this.permissionPolicy = this.coveoService.getPermissionPolicy();
       setTagManager(resolver.adaptTo(TagManager.class));
       if (res != null) {
         Asset asset = res.adaptTo(Asset.class);
