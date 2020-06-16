@@ -31,6 +31,8 @@ public class UserManagerService {
   private static final String GROUP_TYPE = "VIRTUAL_GROUP";
   private static final String USER_TYPE = "USER";
 
+  private static final long ITEMS_PER_PAGE = 15000;
+
   @Reference
   private ResourceResolverFactory resolverFactory;
 
@@ -43,52 +45,77 @@ public class UserManagerService {
     BatchIdentity batchIdentity = new BatchIdentity();
     List<IdentityBody> identityList = new ArrayList<>();
 
-    try {
-      ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
-      UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-      Iterator<Authorizable> authorizables =
-          userManager.findAuthorizables(
-              new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
-                  // Get all authorizables
-                }
-              });
+    ResourceResolver resourceResolver = null;
 
-      if (authorizables == null) {
+    try {
+      long currentPage = 0;
+      resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+      UserManager userManager = resourceResolver.adaptTo(UserManager.class);
+      Iterator<Authorizable> authorizables = getAuthorizables(userManager, currentPage);
+
+      if (authorizables == null || !authorizables.hasNext()) {
         return batchIdentity;
       }
 
-      for (Iterator<Authorizable> iterator = authorizables; iterator.hasNext(); ) {
-        IdentityBody idBody = new IdentityBody();
-        Identity identity = new Identity();
-        List<Identity> membersList = new ArrayList<>();
-        List<Identity> wellKnowns = new ArrayList<>();
-
-        Authorizable auth = iterator.next();
-
-        identity.setName(auth.getPrincipal().getName());
-
-        if (auth.isGroup()) {
-          Group group = (Group) auth;
-          identity.setType(GROUP_TYPE);
-          membersList.addAll(getGroupMemberList(group));
-        } else {
-          User usr = (User) auth;
-          identity.setType(USER_TYPE);
-          wellKnowns.addAll(getUserWellKnows(usr));
+      while (authorizables != null && authorizables.hasNext()) {
+        for (Iterator<Authorizable> iterator = authorizables; iterator.hasNext(); ) {
+          IdentityBody idBody = new IdentityBody();
+          Identity identity = new Identity();
+          List<Identity> membersList = new ArrayList<>();
+          List<Identity> wellKnowns = new ArrayList<>();
+  
+          Authorizable auth = iterator.next();
+  
+          identity.setName(auth.getPrincipal().getName());
+  
+          if (auth.isGroup()) {
+            Group group = (Group) auth;
+            identity.setType(GROUP_TYPE);
+            membersList = getGroupMemberList(group);
+          } else {
+            User usr = (User) auth;
+            identity.setType(USER_TYPE);
+            wellKnowns = getUserWellKnows(usr);
+          }
+  
+          idBody.setWellKnowns(wellKnowns);
+          idBody.setMembers(membersList);
+          idBody.setIdentity(identity);
+          identityList.add(idBody);
+          batchIdentity.setMembers(identityList);
         }
 
-        idBody.setWellKnowns(wellKnowns);
-        idBody.setMembers(membersList);
-        idBody.setIdentity(identity);
-        identityList.add(idBody);
-        batchIdentity.setMembers(identityList);
+        // Increase page number
+        currentPage++;
+
+        // Get next page
+        authorizables = getAuthorizables(userManager, currentPage);
       }
     } catch (RepositoryException | LoginException ex) {
       LOG.error("Error getting all identities", ex);
+    } finally {
+      if (resourceResolver != null && resourceResolver.isLive()) {
+        resourceResolver.close();
+      }
     }
 
+    LOG.debug("Sending batch ({} members)...", batchIdentity.getMembers().size());
+
     return batchIdentity;
+  }
+
+  private Iterator<Authorizable> getAuthorizables(UserManager userManager, long page) {
+    try {
+      LOG.debug("Getting page {}...", page + 1);
+      return userManager.findAuthorizables(new Query() {
+        public <T> void build(QueryBuilder<T> builder) {
+          builder.setLimit(ITEMS_PER_PAGE * page, ITEMS_PER_PAGE);
+        }
+      });
+    } catch (Exception ex) {
+      LOG.error("Error getting findAuthorizables", ex);
+      return null;
+    }
   }
 
   private List<Identity> getGroupMemberList(Group group) {
