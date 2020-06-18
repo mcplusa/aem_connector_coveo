@@ -18,9 +18,8 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.security.user.QueryBuilder.Direction;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -36,7 +35,7 @@ public class UserManagerService {
   private static final String GROUP_TYPE = "VIRTUAL_GROUP";
   private static final String USER_TYPE = "USER";
 
-  private static final long ITEMS_PER_PAGE = 10000;
+  private static final long ITEMS_PER_PAGE = 5;
 
   @Reference
   private ResourceResolverFactory resolverFactory;
@@ -47,11 +46,11 @@ public class UserManagerService {
    * @return BatchIdentity
    */
   public BatchIdentity getIdentityList() {
-    LOG.info("Getting identities list...");
+    LOG.debug("Getting identities list...");
     BatchIdentity batchIdentity = new BatchIdentity();
     List<IdentityBody> identityList = new ArrayList<>();
 
-    Map<String, List<String>> groupsMap = new HashMap<>();
+    Map<String, List<String>> usersMap = new HashMap<>();
 
     ResourceResolver resourceResolver = null;
 
@@ -69,21 +68,21 @@ public class UserManagerService {
         for (Iterator<Authorizable> iterator = authorizables; iterator.hasNext(); ) {
           IdentityBody idBody = new IdentityBody();
           Identity identity = new Identity();
-          List<Identity> wellKnowns = new ArrayList<>();
+          List<Identity> membersList = new ArrayList<>();
   
           Authorizable auth = iterator.next();
-  
-          identity.setName(auth.getPrincipal().getName());
-  
-          if (!auth.isGroup()) {
-            User usr = (User) auth;
-            identity.setType(USER_TYPE);
-            wellKnowns = getUserWellKnows(usr, groupsMap);
+
+          if (auth.isGroup()) {
+            identity.setName(auth.getPrincipal().getName());
+
+            Group group = (Group) auth;
+            identity.setType(GROUP_TYPE);
+            membersList = getGroupMemberList(group, usersMap);
+
+            idBody.setMembers(membersList);
+            idBody.setIdentity(identity);
+            identityList.add(idBody);
           }
-  
-          idBody.setWellKnowns(wellKnowns);
-          idBody.setIdentity(identity);
-          identityList.add(idBody);
         }
 
         // Close current session
@@ -102,17 +101,18 @@ public class UserManagerService {
         authorizables = getAuthorizables(userManager, currentPage);
       }
 
-      // Append groups
-      for (Map.Entry<String, List<String>> entry : groupsMap.entrySet()) {
+      // Append users
+      LOG.debug("Appending users from map....");
+      for (Map.Entry<String, List<String>> entry : usersMap.entrySet()) {
         IdentityBody idBody = new IdentityBody();
         Identity identity = new Identity();
 
         identity.setName(entry.getKey());
 
-        identity.setType(GROUP_TYPE);
-        List<Identity> membersList = getGroupMemberList(entry.getValue());
+        identity.setType(USER_TYPE);
+        List<Identity> wellKnowns = getUserWellKnows(entry.getValue());
 
-        idBody.setMembers(membersList);
+        idBody.setWellKnowns(wellKnowns);
         idBody.setIdentity(identity);
         identityList.add(idBody);
       }
@@ -128,7 +128,7 @@ public class UserManagerService {
       }
     }
 
-    LOG.info("Sending batch ({} members)...", batchIdentity.getMembers().size());
+    LOG.debug("Sending batch ({} members)...", batchIdentity.getMembers().size());
 
     return batchIdentity;
   }
@@ -137,7 +137,7 @@ public class UserManagerService {
     try {
       return userManager.findAuthorizables(new Query() {
         public <T> void build(QueryBuilder<T> builder) {
-          builder.setSelector(User.class);
+          builder.setSelector(Group.class);
           builder.setSortOrder("@jcr:created", Direction.ASCENDING);
           builder.setLimit(ITEMS_PER_PAGE * page, ITEMS_PER_PAGE);
         }
@@ -148,32 +148,35 @@ public class UserManagerService {
     }
   }
 
-  private List<Identity> getGroupMemberList(List<String> users) {
+  private List<Identity> getGroupMemberList(Group group, Map<String, List<String>> usersMap) {
     List<Identity> membersList = new ArrayList<>();
 
-    for (String user : users) {
-      membersList.add(new Identity(user, USER_TYPE));
+    try {
+      Iterator<Authorizable> auths = group.getMembers();
+      while (auths.hasNext()) {
+        Authorizable authorizable = auths.next();
+        if (!authorizable.isGroup()) {
+          String userName = authorizable.getPrincipal().getName();
+          membersList.add(new Identity(userName, USER_TYPE));
+
+          // Put group to the users map
+          List<String> groupsList = usersMap.getOrDefault(userName, new ArrayList<>());
+          groupsList.add(group.getPrincipal().getName());
+          usersMap.put(userName, groupsList);
+        }
+      }
+    } catch (RepositoryException ex) {
+      LOG.error("Error getting wellknows list of the user", ex);
     }
 
     return membersList;
   }
 
-  private List<Identity> getUserWellKnows(User user, Map<String, List<String>> groupsMap) {
+  private List<Identity> getUserWellKnows(List<String> groups) {
     List<Identity> wellKnowns = new ArrayList<>();
-    try {
-      Iterator<Group> groups = user.memberOf();
-      while (groups.hasNext()) {
-        Group authorizable = groups.next();
-        String groupName = authorizable.getPrincipal().getName();
-        wellKnowns.add(new Identity(groupName, GROUP_TYPE));
-
-        // Put user to the groups map
-        List<String> usersList = groupsMap.getOrDefault(groupName, new ArrayList<>());
-        usersList.add(user.getPrincipal().getName());
-        groupsMap.put(groupName, usersList);
-      }
-    } catch (RepositoryException ex) {
-      LOG.error("Error getting wellknows list of the user", ex);
+    
+    for (String group : groups) {
+      wellKnowns.add(new Identity(group, GROUP_TYPE));
     }
 
     return wellKnowns;
