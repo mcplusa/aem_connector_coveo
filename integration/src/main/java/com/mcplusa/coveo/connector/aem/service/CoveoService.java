@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Service keeping a connection to the Coveo Source.
  */
-@Component(metatype = false, immediate = true)
+@Component(metatype = false, immediate = false)
 @Service(CoveoService.class)
 public class CoveoService {
 
