@@ -31,7 +31,6 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -135,15 +134,14 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
     }
 
     // Retrieve ACLs from policy
+    ResourceResolver resourceResolver = null;
     try {
-
-      ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+      resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
       Session adminSession = resourceResolver.adaptTo(Session.class);
       UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-      List<Authorizable> authorizables = getAllAuthorizables(userManager);
 
       Node node = adminSession.getNode(path);
-      List<NodePermissionLevel> permLevels = getPermissionLevelList(node, authorizables);
+      List<NodePermissionLevel> permLevels = getPermissionLevelList(node, userManager);
 
       Type listType =
           new TypeToken<List<NodePermissionLevel>>() {
@@ -154,6 +152,10 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
       mapContent.put("acl", aclJson);
     } catch (Exception ex) {
       LOG.error("Error getting Permissions for page " + path, ex);
+    } finally {
+      if (resourceResolver != null && resourceResolver.isLive()) {
+        resourceResolver.close();
+      }
     }
 
     return mapContent;
@@ -172,6 +174,8 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
       return Base64.getEncoder().encodeToString(html.getBytes());
     } catch (ServletException | IOException ex) {
       LOG.error("Error getting Page content", ex);
+    } catch (Exception ex) {
+      LOG.error("Unexpected Error getting Page content", ex);
     }
 
     return null;

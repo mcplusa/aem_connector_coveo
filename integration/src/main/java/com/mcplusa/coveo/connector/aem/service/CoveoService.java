@@ -89,22 +89,22 @@ public class CoveoService {
   }
 
   private void updateSecurityIdentity(BatchIdentity batchIdentity) {
-    Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-    String json = gson.toJson(batchIdentity);
+    // Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+    // String json = gson.toJson(batchIdentity);
 
-    try (InputStream is = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))) {
+    // try (InputStream is = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))) {
 
-      FileContainerResponse fileContainer = client.getFileContainer();
+    //   FileContainerResponse fileContainer = client.getFileContainer();
 
-      CoveoResponse response = client.pushFileOnS3(is, fileContainer.getUploadUri());
-      if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-        client.pushIdentitiesBatch(config.getAemIdentityProvider(), fileContainer.getFileId());
-      } else {
-        throw new CoveoResponseException(response);
-      }
+    //   CoveoResponse response = client.pushFileOnS3(is, fileContainer.getUploadUri());
+    //   if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+    //     client.pushIdentitiesBatch(config.getAemIdentityProvider(), fileContainer.getFileId());
+    //   } else {
+    //     throw new CoveoResponseException(response);
+    //   }
 
-    } catch (Exception e) {
-      LOG.error("Could not push the identity batch to the file Container", e);
-    }
+    // } catch (Exception e) {
+    //   LOG.error("Could not push the identity batch to the file Container", e);
+    // }
   }
 }
