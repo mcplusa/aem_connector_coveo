@@ -126,6 +126,7 @@ After a successful installation, visit the [System Configuration](http://localho
  - Impersonation API Key _(from the [Generate an Impersonation API Key](#generate-an-impersonation-api-key) section)_
  - Users Identity Provider _Identity Provider used for User permissions, the value should be "aem-security-identity"_
  - Groups Identity Provider _Identity Provider used for Groups permissions, the value should be "aem-security-identity"_
+ - Permission Policy _Permissions to be included in documents; All, [CUG policy](https://docs.adobe.com/content/help/en/experience-manager-65/administering/security/closed-user-groups.html), [LAC policy](https://helpx.adobe.com/experience-manager/6-3/sites/administering/using/user-group-ac-admin.html#AccessRightManagement)_
 
 ### Setup Replication Agent
 
