@@ -139,12 +139,14 @@ public class CoveoTransportHandler implements TransportHandler {
               + " source: "
               + pushClient.getSourceId());
       ReplicationActionType replicationType = tx.getAction().getType();
-      log.debug(getClass().getSimpleName() + ": replicationType " + replicationType.toString());
+      log.info(getClass().getSimpleName() + ":" + replicationType + " " + tx.getAction().getPath());
+
       if (replicationType == ReplicationActionType.TEST) {
         return doTest(ctx, tx, pushClient);
       } else {
         log.info(getClass().getSimpleName() + ": ---------------------------------------");
-        if (tx.getContent() == ReplicationContent.VOID && replicationType != ReplicationActionType.DELETE) {
+        if ((tx.getContent() == ReplicationContent.VOID || tx.getContent() == null)
+            && (replicationType == null || replicationType != ReplicationActionType.DELETE)) {
           return doVoid(tx);
         }
         switch (replicationType) {
@@ -168,6 +170,7 @@ public class CoveoTransportHandler implements TransportHandler {
       updateSourceStatus(PushAPIStatus.IDLE, log);
       pushToFileContainer(log);
 
+      log.error(getClass().getSimpleName() + ": JSON was invalid");
       LOG.error("JSON was invalid", jex);
       return new ReplicationResult(false, 0, jex.getLocalizedMessage());
     } catch (IOException ioe) {
@@ -176,9 +179,9 @@ public class CoveoTransportHandler implements TransportHandler {
 
       log.error(
           getClass().getSimpleName()
-              + ": Could not perform Indexing due to "
+              + ": Could not perform Replication due to "
               + ioe.getLocalizedMessage());
-      LOG.error("Could not perform Indexing", ioe);
+      LOG.error("Could not perform Replication", ioe);
       return new ReplicationResult(false, 0, ioe.getLocalizedMessage());
     }
   }
@@ -210,7 +213,14 @@ public class CoveoTransportHandler implements TransportHandler {
     ReplicationLog log = tx.getLog();
     log.info(getClass().getSimpleName() + ": Deleting... " + tx.getContent().getContentType());
     ObjectMapper mapper = new ObjectMapper();
-    IndexEntry entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
+    IndexEntry entry = null;
+    
+    try {
+      entry = mapper.readValue(tx.getContent().getInputStream(), IndexEntry.class);
+    } catch (Exception e) {
+      LOG.error("Could not parse JSON", e);
+    }
+
     if (entry != null) {
       Optional<ReplicationQueue> queue = this.getReplicationQueue();
       if (queue.isPresent()) {

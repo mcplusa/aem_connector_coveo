@@ -99,7 +99,7 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
           }
         }
       } catch (LoginException e) {
-        log.error("Could not retrieve Page Manager", e);
+        log.error("Could not retrieve the Session", e);
       }
     }
     log.info(getClass().getSimpleName() + ": Path is blank | path: " + path);

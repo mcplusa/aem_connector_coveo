@@ -209,14 +209,14 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     }
 
     // Retrieve ACLs from policy
+    ResourceResolver resourceResolver = null;
     try {
-      ResourceResolver resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
+      resourceResolver = resolverFactory.getAdministrativeResourceResolver(null);
       Session adminSession = resourceResolver.adaptTo(Session.class);
       UserManager userManager = resourceResolver.adaptTo(UserManager.class);
-      List<Authorizable> authorizables = getAllAuthorizables(userManager);
 
       Node node = adminSession.getNode(path);
-      List<NodePermissionLevel> permLevels = getPermissionLevelList(node, authorizables);
+      List<NodePermissionLevel> permLevels = getPermissionLevelList(node, userManager);
 
       Type listType =
           new TypeToken<List<NodePermissionLevel>>() {
@@ -227,6 +227,10 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
       mapContent.put("acl", aclJson);
     } catch (Exception ex) {
       LOG.error("Error getting Permissions for asset " + path, ex);
+    } finally {
+      if (resourceResolver != null && resourceResolver.isLive()) {
+        resourceResolver.close();
+      }
     }
 
     return mapContent;

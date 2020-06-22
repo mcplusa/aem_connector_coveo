@@ -10,7 +10,6 @@ import com.google.gson.JsonObject;
 import com.mcplusa.coveo.connector.aem.indexing.NodePermissionLevel;
 import com.mcplusa.coveo.connector.aem.indexing.Permission;
 import com.mcplusa.coveo.connector.aem.indexing.config.CoveoIndexConfiguration;
-import com.mcplusa.coveo.connector.aem.service.CoveoHostConfiguration;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -29,8 +28,10 @@ import javax.jcr.RepositoryException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.QueryBuilder.Direction;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
@@ -267,8 +268,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         || this.permissionPolicy.equalsIgnoreCase(policy);
   }
 
-  protected List<NodePermissionLevel> getPermissionLevelList(
-      Node node, List<Authorizable> authorizables) {
+  protected List<NodePermissionLevel> getPermissionLevelList(Node node, UserManager userManager) {
     List<NodePermissionLevel> permissionLevels = new ArrayList<>();
     int nodeLevel = 0;
 
@@ -278,7 +278,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
         if (shouldAddPermissionPolicy("POLICY") && node.hasNode("rep:policy")) {
           JsonObject policy = toJson(node.getNode("rep:policy"));
           if (policy != null) {
-            List<Permission> acls = getAcls(policy, authorizables);
+            List<Permission> acls = getAcls(policy, userManager);
             permissions.addAll(acls);
           }
         }
@@ -287,7 +287,7 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
           JsonObject cugPolicy = toJson(node.getNode("rep:cugPolicy"));
           if (cugPolicy != null) {
             List<Permission> cugAcls =
-                getCugAcls(cugPolicy.getAsJsonArray("rep:principalNames"), authorizables);
+                getCugAcls(cugPolicy.getAsJsonArray("rep:principalNames"), userManager);
             permissions.addAll(cugAcls);
           }
         }
@@ -326,10 +326,10 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
    * Returns the content policy bound to the given component.
    *
    * @param policy json
-   * @param authorizables list of authorizables
+   * @param userManager userManager
    * @return the content policy. May be {@code nulll} in case no content policy can be found.
    */
-  protected List<Permission> getAcls(JsonObject policy, List<Authorizable> authorizables) {
+  protected List<Permission> getAcls(JsonObject policy, UserManager userManager) {
     Set<Permission> acl = new HashSet<>();
 
     try {
@@ -339,14 +339,13 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
           String princ = rep.getAsJsonObject().get("rep:principalName").getAsString();
           String type = rep.getAsJsonObject().get("jcr:primaryType").getAsString();
           JsonArray priv = rep.getAsJsonObject().getAsJsonArray("rep:privileges");
-          Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
 
-          if (isGroup.isPresent()) {
-            if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
-              acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
-            } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
-              acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup.get()));
-            }
+          boolean isGroup = isGroup(userManager, princ);
+
+          if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
+            acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup));
+          } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
+            acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup));
           }
         }
       }
@@ -361,18 +360,16 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     return aclList;
   }
 
-  protected List<Permission> getCugAcls(
-      JsonArray principalNames, List<Authorizable> authorizables) {
+  protected List<Permission> getCugAcls(JsonArray principalNames, UserManager userManager) {
     Set<Permission> acl = new HashSet<>();
 
     try {
       for (JsonElement element : principalNames) {
         String princ = element.getAsString();
-        Optional<Boolean> isGroup = principalIsGroup(authorizables, princ);
 
-        if (isGroup.isPresent()) {
-          acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup.get()));
-        }
+        boolean isGroup = isGroup(userManager, princ);
+
+        acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup));
       }
     } catch (Exception ex) {
       LOG.error("Error getting CUG ACLs", ex);
@@ -394,27 +391,21 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     return false;
   }
 
-  protected List<Authorizable> getAllAuthorizables(UserManager userManager) {
-    List<Authorizable> authorizables = new ArrayList<>();
-
+  protected boolean isGroup(UserManager userManager, String id) {
     try {
-      Iterator<Authorizable> iterator =
-          userManager.findAuthorizables(
-              new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
-                  // Get All Authorizables
-                }
-              });
+      // Search the id in Groups
+      Iterator<Authorizable> auths = userManager.findAuthorizables(new Query() {
+        public <T> void build(QueryBuilder<T> builder) {
+          builder.setSelector(Group.class);
+          builder.setSortOrder("@jcr:created", Direction.ASCENDING);
+          builder.setCondition(builder.nameMatches(id));
+        }
+      });
 
-      while (iterator.hasNext()) {
-        authorizables.add(iterator.next());
-      }
-
-      return authorizables;
-
+      return auths != null && auths.hasNext();
     } catch (RepositoryException ex) {
-      LOG.error("Error getting authorizables", ex);
-      return authorizables;
+      LOG.error("Error getting authorizable", ex);
+      return false;
     }
   }
 
