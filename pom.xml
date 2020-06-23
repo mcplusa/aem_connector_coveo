@@ -21,7 +21,6 @@
     <module>parent</module>
     <module>integration</module>
     <module>complete</module>
-    <module>search</module>
   </modules>
 
   <build>
