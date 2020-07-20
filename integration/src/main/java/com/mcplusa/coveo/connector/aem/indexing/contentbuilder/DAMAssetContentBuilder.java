@@ -31,7 +31,6 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.http.HttpStatus;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -103,7 +102,7 @@ public class DAMAssetContentBuilder extends AbstractCoveoContentBuilder {
     if (externalizer != null) {
       documentId = externalizer.publishLink(resolver, path);
     }
-    IndexEntry ret = new IndexEntry("idx", "document", path);
+    IndexEntry ret = new IndexEntry("idx", "asset", path);
     ret.setDocumentId(documentId);
 
     return ret;

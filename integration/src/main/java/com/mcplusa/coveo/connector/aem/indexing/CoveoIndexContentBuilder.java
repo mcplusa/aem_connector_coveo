@@ -35,8 +35,9 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 
 /**
- * This Content-Builder is responsible to filter all relevant information from the activation event
- * into a ReplicationContent which is processed by {@link CoveoTransportHandler}.
+ * This Content-Builder is responsible to filter all relevant information from
+ * the activation event into a ReplicationContent which is processed by
+ * {@link CoveoTransportHandler}.
  */
 @Component(metatype = false)
 @Service(ContentBuilder.class)
@@ -45,7 +46,8 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
 
   private BundleContext context;
 
-  @Reference private ResourceResolverFactory resolverFactory;
+  @Reference
+  private ResourceResolverFactory resolverFactory;
 
   /** Name of the Content Builder. */
   public static final String NAME = "coveo";
@@ -58,23 +60,20 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
   }
 
   @Override
-  public ReplicationContent create(
-      Session session, ReplicationAction action, ReplicationContentFactory factory)
+  public ReplicationContent create(Session session, ReplicationAction action, ReplicationContentFactory factory)
       throws ReplicationException {
     return create(session, action, factory, null);
   }
 
   @Override
-  public ReplicationContent create(
-      Session session,
-      ReplicationAction action,
-      ReplicationContentFactory factory,
-      Map<String, Object> map)
-      throws ReplicationException {
+  public ReplicationContent create(Session session, ReplicationAction action, ReplicationContentFactory factory,
+      Map<String, Object> map) throws ReplicationException {
     String path = action.getPath();
 
     ReplicationLog log = action.getLog();
     boolean includeContent = action.getType().equals(ReplicationActionType.ACTIVATE);
+    boolean isDeleteType = action.getType().equals(ReplicationActionType.DEACTIVATE)
+        || action.getType().equals(ReplicationActionType.DELETE);
 
     if (StringUtils.isNotBlank(path)) {
       try {
@@ -83,13 +82,11 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
         ResourceResolver resolver = resolverFactory.getResourceResolver(sessionMap);
 
         Resource resource = resolver.getResource(path);
-        if (resource != null) {
-          String primaryType =
-              resource.getValueMap().get(JcrConstants.JCR_PRIMARYTYPE, String.class);
+        if (resource != null && !isDeleteType) {
+          String primaryType = resource.getValueMap().get(JcrConstants.JCR_PRIMARYTYPE, String.class);
           CoveoContentBuilder builder = getContentBuilder(primaryType, log);
           if (builder != null) {
-            return createReplicationContent(
-                factory, builder.create(path, resolver, includeContent));
+            return createReplicationContent(factory, builder.create(path, resolver, includeContent));
           }
         } else {
           // Deleted content
@@ -110,30 +107,25 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
    * Looks up a ContentBuilder implementation for the given PrimaryType.
    *
    * @param primaryType content type.
-   * @param log ReplicationLog.
+   * @param log         ReplicationLog.
    * @return CoveoIndexConfiguration or null if none found
    */
   private CoveoContentBuilder getContentBuilder(String primaryType, ReplicationLog log) {
     log.debug(getClass().getSimpleName() + ": getContentBuilder(): primaryType: " + primaryType);
     try {
-      ServiceReference<?>[] serviceReferences =
-          context.getServiceReferences(
-              CoveoContentBuilder.class.getName(),
-              "(" + CoveoIndexConfiguration.PRIMARY_TYPE + "=" + primaryType + ")");
+      ServiceReference<?>[] serviceReferences = context.getServiceReferences(CoveoContentBuilder.class.getName(),
+          "(" + CoveoIndexConfiguration.PRIMARY_TYPE + "=" + primaryType + ")");
       if (serviceReferences != null && serviceReferences.length > 0) {
         return (CoveoContentBuilder) context.getService(serviceReferences[0]);
       }
     } catch (InvalidSyntaxException | NullPointerException ex) {
-      log.info(
-          getClass().getSimpleName()
-              + ": Could not load a CoveoContentBuilder for PrimaryType "
-              + primaryType);
+      log.info(getClass().getSimpleName() + ": Could not load a CoveoContentBuilder for PrimaryType " + primaryType);
     }
     return null;
   }
 
-  private ReplicationContent createReplicationContent(
-      ReplicationContentFactory factory, IndexEntry content) throws ReplicationException {
+  private ReplicationContent createReplicationContent(ReplicationContentFactory factory, IndexEntry content)
+      throws ReplicationException {
     Path tempFile;
 
     try {

@@ -24,7 +24,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DAMAssetContentBuilderTest {
 
-  @Rule public AemContext context = AppAemContext.newAemContext();
+  @Rule
+  public AemContext context = AppAemContext.newAemContext();
 
   @Test
   public void testCreateVideo() {
@@ -38,8 +39,7 @@ public class DAMAssetContentBuilderTest {
     assertEquals("asset", entry.getType());
 
     assertEquals("What is a Neural Network?", entry.getContent("title", String.class));
-    assertEquals(
-        "A channel about animating math, in all senses of the word animate.",
+    assertEquals("A channel about animating math, in all senses of the word animate.",
         entry.getContent("description", String.class));
     assertEquals("Video", entry.getContent("documenttype", String.class));
     assertEquals("admin", entry.getContent("author", String.class));
@@ -60,8 +60,7 @@ public class DAMAssetContentBuilderTest {
     mockReferences(builder);
 
     boolean includeContent = false;
-    IndexEntry entry =
-        builder.create(AppAemContext.VIDEO, context.resourceResolver(), includeContent);
+    IndexEntry entry = builder.create(AppAemContext.VIDEO, context.resourceResolver(), includeContent);
     assertNotNull(entry);
     assertEquals(AppAemContext.VIDEO, entry.getPath());
     assertEquals("asset", entry.getType());
@@ -113,16 +112,27 @@ public class DAMAssetContentBuilderTest {
   @Test
   public void testCreateWithDuplicatedKeys() {
     AppAemContext.loadImageSampleContent(context);
-    DAMAssetContentBuilder builder =
-        new DAMAssetContentBuilder() {
-          @Override
-          public String[] getIndexRules(String primaryType) {
-            return new String[] {"dc:title", "jcr:lastModified", "jcr:lastModified"};
-          }
-        };
+    DAMAssetContentBuilder builder = new DAMAssetContentBuilder() {
+      @Override
+      public String[] getIndexRules(String primaryType) {
+        return new String[] { "dc:title", "jcr:lastModified", "jcr:lastModified" };
+      }
+    };
     mockReferences(builder);
 
     IndexEntry entry = builder.create(AppAemContext.IMAGE, context.resourceResolver(), true);
+    assertNotNull(entry);
+    assertEquals(AppAemContext.IMAGE, entry.getPath());
+    assertEquals("asset", entry.getType());
+  }
+
+  @Test
+  public void testCreateDeletedItem() {
+    AppAemContext.loadImageSampleContent(context);
+    DAMAssetContentBuilder builder = new DAMAssetContentBuilder();
+    mockReferences(builder);
+
+    IndexEntry entry = builder.createDeletedItem(AppAemContext.IMAGE, context.resourceResolver());
     assertNotNull(entry);
     assertEquals(AppAemContext.IMAGE, entry.getPath());
     assertEquals("asset", entry.getType());
@@ -137,10 +147,7 @@ public class DAMAssetContentBuilderTest {
       Field coveoServiceField = DAMAssetContentBuilder.class.getDeclaredField("coveoService");
       coveoServiceField.setAccessible(true);
       coveoServiceField.set(instance, Mockito.mock(CoveoService.class));
-    } catch (NoSuchFieldException
-        | SecurityException
-        | IllegalArgumentException
-        | IllegalAccessException ex) {
+    } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
       Logger.getLogger(DAMAssetContentBuilder.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
