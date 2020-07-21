@@ -197,7 +197,7 @@ public class CoveoTransportHandler implements TransportHandler {
   private ReplicationResult doDeactivate(TransportContext ctx, ReplicationTransaction tx)
       throws JSONException, IOException {
     if (tx.getContent() == null || tx.getContent().getContentType() == null) {
-      // file is already deleted, skip
+      // file has no content or it is an unknown format, skip
       return ReplicationResult.OK;
     }
 
