@@ -98,7 +98,7 @@ public class PageContentBuilder extends AbstractCoveoContentBuilder {
     if (externalizer != null) {
       documentId = externalizer.publishLink(resolver, path);
     }
-    IndexEntry ret = new IndexEntry("idx", "document", path);
+    IndexEntry ret = new IndexEntry("idx", "page", path);
     ret.setDocumentId(documentId);
 
     return ret;
