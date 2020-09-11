@@ -43,6 +43,8 @@ public class IndexEntry {
 
   /**
    * Add content to the map content.
+   * @param key key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
    */
   public void addContent(String key, Object value) {
     if (value != null) {

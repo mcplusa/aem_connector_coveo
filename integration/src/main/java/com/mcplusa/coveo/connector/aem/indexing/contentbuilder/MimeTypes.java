@@ -39,7 +39,11 @@ public final class MimeTypes {
       this.type = type;
     }
 
-    /** Check if value match with enum labels. */
+    /** 
+     * Check if value match with enum labels.
+     * @param label label value 
+     * @return Enum with all values
+     */
     public static Application valueOfLabel(String label) {
       for (Application e : values()) {
         if (e.type.equals(label)) {
@@ -82,7 +86,11 @@ public final class MimeTypes {
       this.type = type;
     }
 
-    /** Check if value match with enum labels. */
+    /** 
+     * Check if value match with enum labels.
+     * @param label label value 
+     * @return Enum with all values
+     */
     public static Audio valueOfLabel(String label) {
       for (Audio e : values()) {
         if (e.type.equals(label)) {
@@ -122,7 +130,11 @@ public final class MimeTypes {
       this.type = type;
     }
 
-    /** Check if value match with enum labels. */
+    /** 
+     * Check if value match with enum labels.
+     * @param label label value 
+     * @return Enum with all values
+     */
     public static Image valueOfLabel(String label) {
       for (Image e : values()) {
         if (e.type.equals(label)) {
@@ -162,7 +174,11 @@ public final class MimeTypes {
       this.type = type;
     }
 
-    /** Check if value match with enum labels. */
+    /** 
+     * Check if value match with enum labels.
+     * @param label label value 
+     * @return Enum with all values
+     */
     public static Text valueOfLabel(String label) {
       for (Text e : values()) {
         if (e.type.equals(label)) {
@@ -202,7 +218,11 @@ public final class MimeTypes {
       this.type = type;
     }
 
-    /** Check if value match with enum labels. */
+    /** 
+     * Check if value match with enum labels.
+     * @param label label value 
+     * @return Enum with all values
+     */
     public static Video valueOfLabel(String label) {
       for (Video e : values()) {
         if (e.type.equals(label)) {
