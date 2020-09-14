@@ -54,6 +54,9 @@ public class CoveoHostConfiguration {
       @PropertyOption(name = "POLICY", value = "Local Access Control Policy") })
   public static final String PROPERTY_PERMISSION_POLICY = "permissionPolicy";
 
+  @Property(name = "groupIdentityProviderFilter", label = "Groups Identity Provider Filter", value = "", description = "Filter groups to sync in Security Identity, only matches groups name will be included.")
+  public static final String PROPERTY_GROUP_IDENTITY_PROVIDER_FILTER = "groupIdentityProviderFilter";
+
   @Getter
   protected String organizationId;
 
@@ -81,6 +84,9 @@ public class CoveoHostConfiguration {
   @Getter
   protected String permissionPolicy;
 
+  @Getter
+  protected String groupIdentityProviderFilter;
+
   protected ComponentContext context;
 
   @Activate
@@ -95,5 +101,6 @@ public class CoveoHostConfiguration {
     this.groupIdentityProvider = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER), null);
     this.aemIdentityProvider = "aem-security-identity";
     this.permissionPolicy = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_PERMISSION_POLICY), CoveoHostConfiguration.PROPERTY_PERMISSION_POLICY_DEFAULT);
+    this.groupIdentityProviderFilter = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_GROUP_IDENTITY_PROVIDER_FILTER), null);
   }
 }

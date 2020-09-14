@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -18,6 +20,7 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
 import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
@@ -50,9 +53,10 @@ public class UserManagerService {
   /**
    * Get all authorizables and return a BatchIdentity.
    *
+   * @param groupFilter if value is present, will filter groups.
    * @return BatchIdentity
    */
-  public BatchIdentity getIdentityList() {
+  public BatchIdentity getIdentityList(String groupFilter) {
     LOG.info("Getting identities list...");
     BatchIdentity batchIdentity = new BatchIdentity();
     List<IdentityBody> identityList = new ArrayList<>();
@@ -61,6 +65,10 @@ public class UserManagerService {
 
     ResourceResolver resourceResolver = null;
     Session session = null;
+
+    long relationshipsCount = 0;
+
+    boolean isGroupFilterValid = isValidRegex(groupFilter);
 
     try {
       long currentPage = 0;
@@ -96,15 +104,21 @@ public class UserManagerService {
             for (Group group : groups) {
               String groupId = group.getPrincipal().getName();
 
-              // push to wellKnowns identity
-              wellKnowns.add(new Identity(groupId, GROUP_TYPE));
+              if (!isGroupFilterValid || groupId.matches(groupFilter)) {
+                // push to wellKnowns identity
+                wellKnowns.add(new Identity(groupId, GROUP_TYPE));
 
-              // append user to the group
-              List<String> groupsList = groupsMap.getOrDefault(groupId, new ArrayList<>());
-              groupsList.add(username);
-              groupsMap.put(groupId, groupsList);
+                // append user to the group
+                List<String> groupsList = groupsMap.getOrDefault(groupId, new ArrayList<>());
+                groupsList.add(username);
+                groupsMap.put(groupId, groupsList);
+                relationshipsCount++;
+              } else if (isGroupFilterValid) {
+                LOG.trace("Group {} skipped due doesn't matches the filter {}", groupId, groupFilter);
+              }
             }
 
+            relationshipsCount++;
             idUserBody.setWellKnowns(wellKnowns);
             idUserBody.setIdentity(identity);
             identityList.add(idUserBody);
@@ -127,8 +141,10 @@ public class UserManagerService {
         List<Identity> membersList = new ArrayList<>();
         for (String user : entry.getValue()) {
           membersList.add(new Identity(user, USER_TYPE));
+          relationshipsCount++;
         }
 
+        relationshipsCount++;
         idBody.setMembers(membersList);
         idBody.setIdentity(identity);
         identityList.add(idBody);
@@ -149,9 +165,27 @@ public class UserManagerService {
       }
     }
 
-    LOG.info("Sending batch ({} members)...", batchIdentity.getMembers().size());
+    if (batchIdentity.getMembers() != null) {
+      LOG.info("Sending batch ({} Users & Groups and {} Relationships)...", batchIdentity.getMembers().size(), relationshipsCount);
+    }
 
     return batchIdentity;
+  }
+
+  private boolean isValidRegex(String filter) {
+    if (StringUtils.isBlank(filter)) {
+      LOG.debug("The groupFilter is blank, no groups are going to be skipped.");
+      return false;
+    }
+
+    try {
+      Pattern.compile(filter);
+    } catch (PatternSyntaxException e) {
+      LOG.warn("The groupFilter is not a valid regular expression value, no groups are going to be skipped.", e);
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -162,10 +196,11 @@ public class UserManagerService {
    *                 /home/users/h/)
    * @param offset   offset value.
    * @param limit    amount of users to be fetched.
+   * @throws RepositoryException if error occurs
    * @return rows of each user.
    */
   public RowIterator getUsers(Session session, String nodePath, long offset, long limit) throws RepositoryException {
-    LOG.info("Getting users from {} : {} {}", nodePath, offset, limit);
+    LOG.debug("Getting users from {} : {} {}", nodePath, offset, limit);
     QueryManager queryManager = session.getWorkspace().getQueryManager();
     String querys = "select [rep:principalName] from [rep:User] as a where [rep:principalName] is not null and isdescendantnode(a, '"
         + nodePath + "') order by [id] desc";
@@ -193,6 +228,7 @@ public class UserManagerService {
    * Get children nodes path from /home/users/.
    * 
    * @param session current session.
+   * @throws RepositoryException if error occurs
    * @return List of paths
    */
   public List<String> getUsersPath(Session session) throws RepositoryException {

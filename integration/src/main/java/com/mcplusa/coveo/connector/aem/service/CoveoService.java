@@ -83,7 +83,7 @@ public class CoveoService {
   public void createIdentityProvider() {
     if (client != null && config.getOrganizationId() != null && config.getSourceId() != null
         && config.getAccessToken() != null) {
-      BatchIdentity batchIdentity = this.userManagerService.getIdentityList();
+      BatchIdentity batchIdentity = this.userManagerService.getIdentityList(config.getGroupIdentityProviderFilter());
       updateSecurityIdentity(batchIdentity);
     }
   }
