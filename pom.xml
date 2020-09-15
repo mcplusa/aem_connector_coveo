@@ -11,7 +11,7 @@
 
   <groupId>com.mcplusa.coveo</groupId>
   <artifactId>com.mcplusa.coveo</artifactId>
-  <version>2020.03-SNAPSHOT</version>
+  <version>2020.02-2</version>
   <packaging>pom</packaging>
 
   <name>Coveo AEM Integration - Root</name>
