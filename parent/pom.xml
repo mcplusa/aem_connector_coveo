@@ -13,7 +13,7 @@
   
   <groupId>com.mcplusa.coveo</groupId>
   <artifactId>coveo-parent</artifactId>
-  <version>2020.02-2</version>
+  <version>2020.03-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Coveo AEM Integration - Parent</name>
@@ -59,7 +59,7 @@
       <dependency>
         <groupId>com.mcplusa.coveo</groupId>
         <artifactId>coveo-aem-integration</artifactId>
-        <version>2020.02-2</version>
+        <version>2020.03-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.projectlombok</groupId>
