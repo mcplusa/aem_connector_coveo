@@ -72,16 +72,8 @@ public class CoveoHostConfiguration {
   @Getter
   protected String agentId;
 
-<<<<<<< HEAD
-    @Property(name = "agentId", label = "Agent ID", value = "coveo-index-agent", description = "Agent ID of the created Coveo Index Agent")
-    public static final String PROPERTY_AGENT_ID = "agentId";
-
-    @Getter
-    protected String organizationId;
-=======
   @Getter
   protected String userIdentityProvider;
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
 
   @Getter
   protected String groupIdentityProvider;
@@ -92,27 +84,10 @@ public class CoveoHostConfiguration {
   @Getter
   protected String permissionPolicy;
 
-<<<<<<< HEAD
-    @Getter
-    protected String agentId;
-
-    protected ComponentContext context;
-
-    @Activate
-    public void activate(ComponentContext context) {
-        this.context = context;
-        this.organizationId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ORG_ID), null);
-        this.sourceId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_SOURCE_ID), null);
-        this.accessToken = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ACCESS_TOKEN), null);
-        this.environment = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_ENV), CoveoHostConfiguration.PROPERTY_ENV_DEFAULT);
-        this.agentId = PropertiesUtil.toString(context.getProperties().get(CoveoHostConfiguration.PROPERTY_AGENT_ID), null);
-    }
-=======
   @Getter
   protected String groupIdentityProviderFilter;
 
   protected ComponentContext context;
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
 
   @Activate
   public void activate(ComponentContext context) {

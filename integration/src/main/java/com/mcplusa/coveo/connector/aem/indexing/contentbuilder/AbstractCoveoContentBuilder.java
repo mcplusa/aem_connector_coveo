@@ -97,26 +97,6 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
     return null;
   }
 
-<<<<<<< HEAD
-    /**
-     * Recursively searches all child-resources for the given resources and
-     * returns a map with all of them
-     *
-     * @param res Resource document
-     * @param properties properties to map
-     * @return Map with all properties
-     */
-    protected Map<String, Object> getProperties(Resource res, String[] properties) {
-        ValueMap vm = res.getValueMap();
-        Map<String, Object> ret = Arrays.stream(properties)
-                .filter(property -> vm.containsKey(property) && vm.get(property) != null)
-                .collect(Collectors.toMap(Function.identity(), property -> vm.get(property), (a, b) -> a));
-
-        for (Resource child : res.getChildren()) {
-            Map<String, Object> props = getProperties(child, properties);
-            // merge properties
-            props.entrySet().forEach(entry -> {
-=======
   /**
    * Recursively searches all child-resources for the given resources and returns a map with all of
    * them.
@@ -140,7 +120,6 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
           .entrySet()
           .forEach(
               entry -> {
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
                 String key = entry.getKey();
                 if (!ret.containsKey(key)) {
                   ret.put(key, entry.getValue());
@@ -204,70 +183,6 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
       LOG.error("Error tags", e);
     }
 
-<<<<<<< HEAD
-    protected Map<String, Object> getJsonProperties(JsonObject json, String[] properties) {
-        Map<String, Object> props = new HashMap<>();
-        json.keySet().forEach(key -> {
-            JsonElement el = json.get(key);
-            if (el != null && el.isJsonObject()) {
-                Map<String, Object> childProps = this.getJsonProperties(el.getAsJsonObject(), properties);
-                // merge properties
-                childProps.entrySet().forEach(entry -> {
-                    String ckey = entry.getKey();
-                    if (!props.containsKey(ckey)) {
-                        props.put(ckey, entry.getValue());
-                    } else {
-                        props.put(ckey, mergeProperties(props.get(entry.getKey()), entry.getValue()));
-                    }
-                });
-            } else if (el != null && matchProperty(key, properties)) {
-                if (el.isJsonArray()) {
-                    props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
-                } else {
-                    props.put(key, el.toString());
-                }
-            }
-        });
-
-        return props;
-    }
-
-    private boolean matchProperty(String key, String[] properties) {
-        for (int i = 0; i < properties.length; i++) {
-            if (properties[i].equals(key)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Returns the content policy bound to the given component.
-     *
-     * @param policy json
-     * @param userManager manager
-     * @return the content policy. May be {@code nulll} in case no content
-     * policy can be found.
-     */
-    protected List<Permission> getACLs(JsonObject policy, UserManager userManager) {
-        List<Permission> acl = new ArrayList<>();
-
-        try {
-            for (String key : policy.keySet()) {
-                JsonElement rep = policy.get(key);
-                if (rep.isJsonObject()) {
-                    String princ = rep.getAsJsonObject().get("rep:principalName").getAsString();
-                    String type = rep.getAsJsonObject().get("jcr:primaryType").getAsString();
-                    JsonArray priv = rep.getAsJsonObject().getAsJsonArray("rep:privileges");
-                    boolean isGroup = principalIsGroup(userManager, princ);
-
-                    if (type.equals("rep:GrantACE") && hasPrivileges(priv)) {
-                        acl.add(new Permission(princ, Permission.PERMISSION_TYPE.ALLOW, isGroup));
-                    } else if (type.equals("rep:DenyACE") && hasPrivileges(priv)) {
-                        acl.add(new Permission(princ, Permission.PERMISSION_TYPE.DENY, isGroup));
-                    }
-=======
     return value;
   }
 
@@ -330,7 +245,6 @@ public abstract class AbstractCoveoContentBuilder implements CoveoContentBuilder
                   props.put(key, new Gson().fromJson(el.getAsJsonArray(), List.class));
                 } else {
                   props.put(key, el.getAsString());
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
                 }
               }
             });
