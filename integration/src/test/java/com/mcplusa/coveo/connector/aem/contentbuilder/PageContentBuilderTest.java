@@ -45,16 +45,6 @@ public class PageContentBuilderTest {
         };
     mockReferences(builder);
 
-<<<<<<< HEAD
-        boolean includeContent = true;
-        IndexEntry entry = builder.create(AppAemContext.PAGE, context.resourceResolver(), includeContent);
-        assertNotNull(entry);
-        assertEquals(AppAemContext.PAGE, entry.getPath());
-        assertEquals("page", entry.getType());
-        assertEquals("/foo/template", entry.getContent().get("cq:template"));
-        assertEquals("foobarValue", entry.getContent().get("foobar"));
-        assertEquals("childValue", entry.getContent().get("childFoo"));
-=======
     boolean includeContent = true;
     IndexEntry entry =
         builder.create(AppAemContext.PAGE, context.resourceResolver(), includeContent);
@@ -64,7 +54,6 @@ public class PageContentBuilderTest {
     assertEquals("/foo/template", entry.getContent().get("cq:template"));
     assertEquals("foobarValue", entry.getContent().get("foobar"));
     assertEquals("childValue", entry.getContent().get("childFoo"));
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
 
     assertTrue(entry.getContent("boolean", Boolean.class));
 
@@ -79,33 +68,6 @@ public class PageContentBuilderTest {
     assertEquals(String.class, cascade[1].getClass());
     assertEquals(String.class, cascade[2].getClass());
 
-<<<<<<< HEAD
-        assertEquals(false, entry.getContent().containsKey("notexist"));
-        assertEquals(false, entry.getContent().containsKey("nullprop"));
-    }
-
-    @Test
-    public void testCreateWithoutContent() {
-        PageContentBuilder builder = new PageContentBuilder() {
-            @Override
-            public String[] getIndexRules(String primaryType) {
-                return new String[]{"foobar", "childFoo", "boolean", "multi", "cascade", "double", "ipsum", "cq:template"};
-            }
-        };
-        mockReferences(builder);
-        boolean includeContent = false;
-        IndexEntry entry = builder.create(AppAemContext.PAGE, context.resourceResolver(), includeContent);
-        assertNotNull(entry);
-        assertEquals(AppAemContext.PAGE, entry.getPath());
-        assertEquals("page", entry.getType());
-        assertEquals("/content/foobar", entry.getDocumentId());
-        assertEquals(false, entry.getContent().containsKey("cq:template"));
-        assertEquals(false, entry.getContent().containsKey("foobar"));
-        assertEquals(false, entry.getContent().containsKey("childFoo"));
-        assertEquals(false, entry.getContent().containsKey("notexist"));
-        assertEquals(false, entry.getContent().containsKey("nullprop"));
-    }
-=======
     assertEquals(false, entry.getContent().containsKey("notexist"));
     assertEquals(false, entry.getContent().containsKey("nullprop"));
   }
@@ -149,7 +111,6 @@ public class PageContentBuilderTest {
       Field field3 = PageContentBuilder.class.getDeclaredField("resolverFactory");
       field3.setAccessible(true);
       field3.set(instance, Mockito.mock(ResourceResolverFactory.class));
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
 
       Field coveoServiceField = PageContentBuilder.class.getDeclaredField("coveoService");
       coveoServiceField.setAccessible(true);
