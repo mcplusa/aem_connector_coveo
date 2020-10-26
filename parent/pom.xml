@@ -13,7 +13,7 @@
   
   <groupId>com.mcplusa.coveo</groupId>
   <artifactId>coveo-parent</artifactId>
-  <version>0.0.1</version>
+  <version>2020.02-2</version>
   <packaging>pom</packaging>
 
   <name>Coveo AEM Integration - Parent</name>
@@ -42,7 +42,7 @@
       <dependency>
         <groupId>com.mcplusa.coveo</groupId>
         <artifactId>coveo-sdk</artifactId>
-        <version>0.0.1</version>
+        <version>0.4.0</version>
       </dependency>
       <dependency>
         <groupId>io.wcm.maven</groupId>
@@ -54,12 +54,12 @@
       <dependency>
         <groupId>com.mcplusa.coveo</groupId>
         <artifactId>coveo-sdk-osgi</artifactId>
-        <version>0.0.1</version>
+        <version>0.4.0</version>
       </dependency>
       <dependency>
         <groupId>com.mcplusa.coveo</groupId>
         <artifactId>coveo-aem-integration</artifactId>
-        <version>0.0.1</version>
+        <version>2020.02-2</version>
       </dependency>
       <dependency>
         <groupId>org.projectlombok</groupId>

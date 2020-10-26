@@ -1,0 +1,35 @@
+{
+    "the_docker_book.pdf": {
+        "jcr:content": {
+            "cq:lastModified": "2020-03-10T14:15:25.774-03:0",
+            "cq:lastModifiedBy": "admin",
+            "cq:name": "The Docker Book",
+            "dam:relativePath": "books/the_docker_book.pdf",
+            "jcr:created": "Thu Dec 22 2016 11:26:10 GMT+0100",
+            "jcr:createdBy": "admin",
+            "jcr:primaryType": "dam:Asset",
+            "sling:resourceType": "foo/components/bar",
+            "metadata": {
+                "dc:title": ["The Docker Book", "The Docker Book"],
+                "dc:title_xmpArrayType": "rdf:Alt",
+                "dc:format": "application/pdf",
+                "jcr:lastModified": "2020-03-10T14:15:25.774-03:00",
+                "dam:size": 35067
+            },
+            "renditions": {
+                "original": {
+                    "jcr:content": {
+                        "jcr:mimeType": "application/pdf",
+                        "jcr:lastModified": "2020-03-18T18:27:52.439-03:00",
+                        "jcr:lastModifiedBy": "admin",
+                        "data": "SGVsbG8gd29ybGQ="
+                    }
+                }
+            }
+        },
+        "jcr:created": "Thu Dec 22 2016 11:26:10 GMT+0100",
+        "jcr:createdBy": "admin",
+        "jcr:primaryType": "dam:Asset",
+        "nullprop": null
+    }
+}
