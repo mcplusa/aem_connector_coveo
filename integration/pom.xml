@@ -5,21 +5,13 @@
   <parent>
     <groupId>com.mcplusa.coveo</groupId>
     <artifactId>coveo-parent</artifactId>
-<<<<<<< HEAD
-    <version>2020.02-SNAPSHOT-03302020</version>
-=======
-    <version>2020.03-SNAPSHOT</version>
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
+    <version>2020.03</version>
     <relativePath>../parent/pom.xml</relativePath>
   </parent>
 
   <groupId>com.mcplusa.coveo</groupId>
   <artifactId>coveo-aem-integration</artifactId>
-<<<<<<< HEAD
-  <version>2020.02-SNAPSHOT-03302020</version>
-=======
-  <version>2020.03-SNAPSHOT</version>
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
+  <version>2020.03</version>
   <packaging>bundle</packaging>
 
   <name>Coveo AEM Integration</name>
