@@ -1,8 +1,8 @@
 package com.mcplusa.coveo.connector.aem.indexing;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -10,17 +10,10 @@ import lombok.ToString;
 @Getter
 @Setter
 @AllArgsConstructor
-@EqualsAndHashCode
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Permission {
+public class NodePermissionLevel {
 
-  public enum PERMISSION_TYPE {
-    ALLOW,
-    DENY
-  }
-
-  private String principalName;
-  private PERMISSION_TYPE type;
-  private boolean isGroup;
+  private int nodeLevel;
+  private List<Permission> permissions;
 }

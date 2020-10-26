@@ -1,5 +1,7 @@
 package com.mcplusa.coveo.connector.aem.testcontext;
 
+import static org.junit.Assert.assertNotNull;
+
 import com.day.cq.commons.Externalizer;
 import com.day.cq.contentsync.handler.util.RequestResponseFactory;
 import com.day.cq.dam.api.Asset;
@@ -11,8 +13,6 @@ import javax.jcr.Session;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.engine.SlingRequestProcessor;
-
-import static org.junit.Assert.assertNotNull;
 
 public final class AppAemContext {
 
@@ -34,6 +34,14 @@ public final class AppAemContext {
     return new AemContext(new SetUpCallback(callback));
   }
 
+<<<<<<< HEAD
+=======
+  /**
+   * Loads The Page sample.
+   * 
+   * @param context AemContext instance.
+   */
+>>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
   public static void loadPageSampleContent(AemContext context) {
     context.load().json("/content.json", AppAemContext.CONTENT_ROOT);
     context.registerService(Externalizer.class);
@@ -45,6 +53,11 @@ public final class AppAemContext {
     context.currentPage(currentPage);
   }
 
+  /**
+   * Loads the DAM Video sample.
+   * 
+   * @param context AemContext instance.
+   */
   public static void loadVideoSampleContent(AemContext context) {
     context.load().json("/video.json", AppAemContext.CONTENT_ROOT);
     context.registerService(Externalizer.class);
@@ -56,6 +69,11 @@ public final class AppAemContext {
     context.currentResource(resource);
   }
 
+  /**
+   * Loads the DAM Image sample.
+   * 
+   * @param context AemContext instance.
+   */
   public static void loadImageSampleContent(AemContext context) {
     context.load().json("/image.json", AppAemContext.CONTENT_ROOT);
     context.registerService(Externalizer.class);
@@ -79,8 +97,22 @@ public final class AppAemContext {
   }
 
   /**
-   * Custom set up rules required in all unit tests.
+   * Loads the DAM PDF sample.
+   * 
+   * @param context AemContext instance.
    */
+  public static void loadPdfSampleContent(AemContext context) {
+    context.load().json("/pdf.json", AppAemContext.CONTENT_ROOT);
+    context.registerService(Externalizer.class);
+    context.registerService(Asset.class);
+    context.registerService(Session.class);
+
+    Resource resource = context.resourceResolver().getResource(AppAemContext.PDF);
+    assertNotNull(resource);
+    context.currentResource(resource);
+  }
+
+  /** Custom set up rules required in all unit tests. */
   private static final class SetUpCallback implements AemContextCallback {
 
     private final AemContextCallback testCallback;
@@ -100,8 +132,6 @@ public final class AppAemContext {
           e.printStackTrace();
         }
       }
-
     }
   }
-
 }

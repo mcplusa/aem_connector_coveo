@@ -8,4 +8,5 @@ public interface CoveoContentBuilder {
 
   public IndexEntry create(String path, @Nonnull ResourceResolver resolver, boolean includeContent);
 
+  public IndexEntry createDeletedItem(String path, @Nonnull ResourceResolver resolver);
 }

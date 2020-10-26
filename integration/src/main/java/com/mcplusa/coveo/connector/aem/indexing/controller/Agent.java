@@ -7,34 +7,30 @@ import lombok.Getter;
 import org.apache.commons.codec.binary.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.models.annotations.Model;
 import org.apache.sling.models.annotations.Default;
+import org.apache.sling.models.annotations.Model;
 import org.apache.sling.models.annotations.Optional;
 import org.apache.sling.models.annotations.injectorspecific.SlingObject;
 import org.apache.sling.models.annotations.injectorspecific.ValueMapValue;
 
-@Model(adaptables = {
-    SlingHttpServletRequest.class, Resource.class}
-)
+@Model(adaptables = {SlingHttpServletRequest.class, Resource.class})
 public class Agent {
 
-    @SlingObject
-    protected Resource resource;
+  @SlingObject protected Resource resource;
 
-    @Getter
-    private boolean valid;
+  @Getter private boolean valid;
 
-    @ValueMapValue
-    @Default(values = "false")
-    private String enabled;
+  @ValueMapValue
+  @Default(values = "false")
+  private String enabled;
 
-    @Inject
-    @Optional
-    private CoveoService coveoService;
+  @Inject @Optional private CoveoService coveoService;
 
-    @PostConstruct
-    protected void activate() {
-        valid = StringUtils.equals(enabled, "true") && coveoService != null && coveoService.getClient() != null;
-    }
-
+  @PostConstruct
+  protected void activate() {
+    valid =
+        StringUtils.equals(enabled, "true")
+            && coveoService != null
+            && coveoService.getClient() != null;
+  }
 }
