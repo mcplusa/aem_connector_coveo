@@ -2,6 +2,27 @@ package com.mcplusa.coveo.connector.aem.indexing.contentbuilder;
 
 /** Utility class to get file extension and type based on mimetype. */
 public final class MimeTypes {
+<<<<<<< HEAD
+    public enum Application {
+        ATOM_XML("application/atom+xml"), ATOMCAT_XML("application/atomcat+xml"), ECMASCRIPT("application/ecmascript"),
+        JAVA_ARCHIVE("application/java-archive"), JAVASCRIPT("application/javascript"), JSON("application/json"),
+        MP4("application/mp4"), OCTET_STREAM("application/octet-stream"), PKCS_10("application/pkcs10"),
+        PKCS_7_MIME("application/pkcs7-mime"), PKCS_7_SIGNATURE("application/pkcs7-signature"),
+        PKCS_8("application/pkcs8"), POSTSCRIPT("application/postscript"), RDF_XML("application/rdf+xml"),
+        RSS_XML("application/rss+xml"), RTF("application/rtf"), SMIL_XML("application/smil+xml"),
+        X_FONT_OTF("application/x-font-otf"), X_FONT_TTF("application/x-font-ttf"),
+        X_FONT_WOFF("application/x-font-woff"), X_PKCS_12("application/x-pkcs12"),
+        X_SHOCKWAVE_FLASH("application/x-shockwave-flash"), X_SILVERLIGHT_APP("application/x-silverlight-app"),
+        XHTML_XML("application/xhtml+xml"), XML("application/xml"), XML_DTD("application/xml-dtd"),
+        XSLT_XML("application/xslt+xml"), ZIP("application/zip"),
+        IMAGE_SET("Multipart/Related; type=application/x-ImageSet");
+
+        public final String type;
+
+        private Application(String type) {
+            this.type = type;
+        }
+=======
   public enum Application {
     ATOM_XML("application/atom+xml"),
     ATOMCAT_XML("application/atomcat+xml"),
@@ -32,6 +53,7 @@ public final class MimeTypes {
     XSLT_XML("application/xslt+xml"),
     ZIP("application/zip"),
     IMAGE_SET("Multipart/Related; type=application/x-ImageSet");
+>>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
 
     public final String type;
 

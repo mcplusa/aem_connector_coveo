@@ -34,11 +34,14 @@ public final class AppAemContext {
     return new AemContext(new SetUpCallback(callback));
   }
 
+<<<<<<< HEAD
+=======
   /**
    * Loads The Page sample.
    * 
    * @param context AemContext instance.
    */
+>>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
   public static void loadPageSampleContent(AemContext context) {
     context.load().json("/content.json", AppAemContext.CONTENT_ROOT);
     context.registerService(Externalizer.class);
@@ -78,6 +81,17 @@ public final class AppAemContext {
     context.registerService(Session.class);
 
     Resource resource = context.resourceResolver().getResource(AppAemContext.IMAGE);
+    assertNotNull(resource);
+    context.currentResource(resource);
+  }
+
+  public static void loadPdfSampleContent(AemContext context) {
+    context.load().json("/pdf.json", AppAemContext.CONTENT_ROOT);
+    context.registerService(Externalizer.class);
+    context.registerService(Asset.class);
+    context.registerService(Session.class);
+
+    Resource resource = context.resourceResolver().getResource(AppAemContext.PDF);
     assertNotNull(resource);
     context.currentResource(resource);
   }
