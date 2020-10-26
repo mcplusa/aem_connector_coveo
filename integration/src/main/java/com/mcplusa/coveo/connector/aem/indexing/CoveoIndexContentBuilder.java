@@ -44,56 +44,6 @@ import org.osgi.framework.ServiceReference;
 @Property(name = "name", value = CoveoIndexContentBuilder.NAME)
 public class CoveoIndexContentBuilder implements ContentBuilder {
 
-<<<<<<< HEAD
-    private BundleContext context;
-
-    @Reference
-    private ResourceResolverFactory resolverFactory;
-
-    /**
-     * Name of the Content Builder
-     */
-    public static final String NAME = "coveo";
-    /**
-     * Title of the Content Builder
-     */
-    public static final String TITLE = "Coveo Index Content";
-
-    @Activate
-    public void activate(BundleContext context) {
-        this.context = context;
-    }
-
-    @Override
-    public ReplicationContent create(Session session, ReplicationAction action, ReplicationContentFactory factory) throws ReplicationException {
-        return create(session, action, factory, null);
-    }
-
-    @Override
-    public ReplicationContent create(Session session, ReplicationAction action, ReplicationContentFactory factory, Map<String, Object> map) throws ReplicationException {
-        String path = action.getPath();
-        
-        ReplicationLog log = action.getLog();
-        boolean includeContent = action.getType().equals(ReplicationActionType.ACTIVATE);
-
-        if (StringUtils.isNotBlank(path)) {
-            try {
-                HashMap<String, Object> sessionMap = new HashMap<>();
-                sessionMap.put(JcrResourceConstants.AUTHENTICATION_INFO_SESSION, session);
-                ResourceResolver resolver = resolverFactory.getResourceResolver(sessionMap);
-
-                Resource resource = resolver.getResource(path);
-                if (resource != null) {
-                    String primaryType = resource.getValueMap().get(JcrConstants.JCR_PRIMARYTYPE, String.class);
-                    CoveoContentBuilder builder = getContentBuilder(primaryType, log);
-                    if (builder != null) {
-                        return createReplicationContent(factory, builder.create(path, resolver, includeContent));
-                    }
-                }
-            } catch (LoginException e) {
-                log.error("Could not retrieve Page Manager", e);
-            }
-=======
   private BundleContext context;
 
   @Reference
@@ -144,34 +94,11 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
           if (builder != null) {
             return createReplicationContent(factory, builder.createDeletedItem(path, resolver));
           }
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
         }
       } catch (LoginException e) {
         log.error("Could not retrieve the Session", e);
       }
     }
-<<<<<<< HEAD
-
-    /**
-     * Looks up a ContentBuilder implementation for the given PrimaryType.
-     *
-     * @param primaryType
-     * @param log
-     * @return CoveoIndexConfiguration or null if none found
-     */
-    private CoveoContentBuilder getContentBuilder(String primaryType, ReplicationLog log) {
-        log.debug(getClass().getSimpleName() + ": getContentBuilder(): primaryType: " + primaryType);
-        try {
-            ServiceReference[] serviceReferences = context.getServiceReferences(CoveoContentBuilder.class.getName(),
-                    "(" + CoveoIndexConfiguration.PRIMARY_TYPE + "=" + primaryType + ")");
-            if (serviceReferences != null && serviceReferences.length > 0) {
-                return (CoveoContentBuilder) context.getService(serviceReferences[0]);
-            }
-        } catch (InvalidSyntaxException | NullPointerException ex) {
-            log.info(getClass().getSimpleName() + ": Could not load a CoveoContentBuilder for PrimaryType " + primaryType);
-        }
-        return null;
-=======
     log.info(getClass().getSimpleName() + ": Path is blank | path: " + path);
     return ReplicationContent.VOID;
   }
@@ -193,7 +120,6 @@ public class CoveoIndexContentBuilder implements ContentBuilder {
       }
     } catch (InvalidSyntaxException | NullPointerException ex) {
       log.info(getClass().getSimpleName() + ": Could not load a CoveoContentBuilder for PrimaryType " + primaryType);
->>>>>>> 369b48311d342b2009f953de36ef64d9c1499be0
     }
     return null;
   }
